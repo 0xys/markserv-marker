@@ -1,0 +1,14 @@
+Usage
+$ markserv <file/dir>
+$ readme (serve closest README.md file)
+
+Options
+	--port, -p,  HTTP port [port] (8642)
+	--hotreload, -l  Hot-reload via WebSocket (true), disable with --no-hotreload
+	--browser, -b  Launch browser (true)
+	--silent, -i  Silent (false)
+	--address, -a  Serve on ip/address [address] (localhost)
+	--verbose, -v  Verbose output (false)
+	--light  Use light theme (default: dark)
+	--synthwave  Use synthwave/retro-neon theme (default: dark)
+	--templates  Enable {file:}, {markdown:}, {html:}, {less:} templating (false)
