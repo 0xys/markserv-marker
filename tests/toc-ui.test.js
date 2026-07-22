@@ -50,6 +50,7 @@ test('the sidebar lists h1 and h2 in document order, h3 excluded', async t => {
 
 	const nav = document.querySelector('.marker-toc')
 	t.truthy(nav)
+	t.true(document.body.classList.contains('has-toc'))
 
 	const items = [...nav.querySelectorAll('li')]
 	t.deepEqual(items.map(item => item.textContent), ['First', 'Alpha', 'Beta', 'Second'])
@@ -95,4 +96,5 @@ test('the sidebar rebuilds after a hot-reload content swap', async t => {
 test('no sidebar for documents with fewer than two headings', async t => {
 	const window = await buildPage('# Lonely\n\njust text\n')
 	t.falsy(window.document.querySelector('.marker-toc'))
+	t.false(window.document.body.classList.contains('has-toc'))
 })

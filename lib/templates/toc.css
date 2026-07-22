@@ -53,8 +53,27 @@
 	text-decoration: underline;
 }
 
-/* Not enough room next to the 978px body on narrow viewports */
-@media (max-width: 1400px) {
+/* The centered 978px body leaves free margin for the TOC only on wide
+   viewports. In between, shift the body left to make room (toc.js adds
+   .has-toc to <body> only when a TOC is actually rendered). On truly
+   narrow viewports, hide the TOC. */
+@media (min-width: 1060px) and (max-width: 1459px) {
+	body.has-toc {
+		margin-right: 252px;
+	}
+	body.has-toc .marker-toc {
+		width: 220px;
+	}
+}
+
+@media (min-width: 1060px) and (max-width: 1259px) {
+	body.has-toc {
+		width: auto;
+		margin-left: 16px;
+	}
+}
+
+@media (max-width: 1059px) {
 	.marker-toc {
 		display: none;
 	}
