@@ -377,6 +377,40 @@ test('same-block comments render in ascending line order', async t => {
 	t.deepEqual(ids, ['abc123-c1', 'abc123-c2'])
 })
 
+test('a repeated short quote highlights the occurrence in the commented lines', async t => {
+	// "word" appears on line 3 and again in a table header on line 7;
+	// the comment anchors to line 7, so the table occurrence must win
+	const markdown = 'word intro here\n\ntext with word inside\n\n# Section\n\n| word | other |\n|---|---|\n| a | b |\n'
+	const contentHtml = await markdownToHTML(markdown)
+	const dom = new JSDOM(
+		`<!DOCTYPE html><html><body>
+			<article class="markdown-body"><div id="marker-content">${contentHtml}</div></article>
+			<div class="page-controls"></div>
+		</body></html>`,
+		{url: 'http://localhost:7642/f/abc123/test.md', runScripts: 'outside-only'})
+	const {window} = dom
+	window.__marker = {fileId: 'abc123', apiBase: '/api', hotreload: true}
+	window.localStorage.setItem('markserv-marker-author', 'tester')
+	window.fetch = () => Promise.resolve({
+		ok: true, status: 200,
+		json: () => Promise.resolve({
+			fileId: 'abc123', threads: [{
+				id: 'abc123-c1', fileId: 'abc123', lineStart: 7, lineEnd: 7, quote: 'word',
+				parentId: null, author: 'reviewer', body: 'On the table header',
+				createdAt: '2026-07-21T00:00:00.000Z', resolved: false, replies: []
+			}]
+		})
+	})
+	window.eval(COMMENTS_JS)
+	await tick(20)
+
+	const mark = window.document.querySelector('mark.marker-quote')
+	t.truthy(mark)
+	const block = mark.closest('[data-source-line]')
+	t.is(block.tagName, 'TH')
+	t.is(block.dataset.sourceLine, '7')
+})
+
 test('hot reload rebuilds widgets after content swap', async t => {
 	const {window, document} = await buildPage([{
 		id: 'abc123-c1',

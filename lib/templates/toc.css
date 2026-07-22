@@ -1,19 +1,72 @@
-/* Table-of-contents sidebar (built by toc.js) */
+/* Table-of-contents overlay (built by toc.js).
+   Hidden by default; hovering the right edge slides the panel in OVER
+   the content — no layout shift. The ≡ handle rides on the panel's
+   left edge and clicking it pins the panel open. */
 
+/* Invisible hover strip along the right edge */
+.marker-toc-zone {
+	position: fixed;
+	top: 0;
+	right: 0;
+	width: 28px;
+	height: 100vh;
+	z-index: 9998;
+}
+
+/* The panel: slides in over the content */
 .marker-toc {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
 	position: fixed;
 	top: 24px;
-	right: 16px;
-	width: 220px;
-	max-height: calc(100vh - 120px);
-	overflow-y: auto;
-	padding: 8px 4px 8px 12px;
-	border-left: 2px solid rgba(128, 128, 128, 0.35);
-	background: rgba(128, 128, 128, 0.06);
-	border-radius: 0 6px 6px 0;
+	right: 0;
+	width: 240px;
+	color: var(--markserv-btn-color);
 	font-size: 12px;
 	line-height: 1.5;
-	z-index: 30;
+	z-index: 9999;
+	transform: translateX(calc(100% + 8px));
+	transition: transform 0.15s ease;
+}
+
+.marker-toc-zone:hover ~ .marker-toc,
+.marker-toc:hover,
+.marker-toc.pinned {
+	transform: translateX(0);
+}
+
+/* Scrollable body of the panel (the nav itself must not clip the handle) */
+.marker-toc-body {
+	max-height: calc(100vh - 120px);
+	overflow-y: auto;
+	padding: 10px 14px;
+	border: 1px solid var(--markserv-btn-border);
+	border-right: none;
+	border-radius: 8px 0 0 8px;
+	background: var(--markserv-btn-bg);
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+/* Handle hanging off the panel's left edge — visible at the screen edge
+   while the panel is hidden, slides along with it */
+.marker-toc-handle {
+	position: absolute;
+	left: -30px;
+	top: 50%;
+	transform: translateY(-50%);
+	padding: 8px 6px;
+	font-size: 14px;
+	line-height: 1;
+	border-radius: 6px 0 0 6px;
+	color: var(--markserv-btn-color);
+	background: var(--markserv-btn-bg);
+	border: 1px solid var(--markserv-btn-border);
+	border-right: none;
+	cursor: pointer;
+	opacity: 0.75;
+}
+
+.marker-toc-handle:hover {
+	opacity: 1;
 }
 
 .marker-toc-title {
@@ -42,39 +95,29 @@
 	padding-left: 14px;
 }
 
+.marker-toc-h3 {
+	padding-left: 28px;
+	font-size: 11px;
+}
+
+.marker-toc-count {
+	display: inline-block;
+	margin-left: 6px;
+	padding: 0 6px;
+	border-radius: 8px;
+	font-size: 10px;
+	line-height: 15px;
+	vertical-align: 1px;
+	background: rgba(210, 153, 34, 0.45);
+}
+
 .marker-toc a {
 	color: inherit;
-	opacity: 0.7;
+	opacity: 0.75;
 	text-decoration: none;
 }
 
 .marker-toc a:hover {
 	opacity: 1;
 	text-decoration: underline;
-}
-
-/* The centered 978px body leaves free margin for the TOC only on wide
-   viewports. In between, shift the body left to make room (toc.js adds
-   .has-toc to <body> only when a TOC is actually rendered). On truly
-   narrow viewports, hide the TOC. */
-@media (min-width: 1060px) and (max-width: 1459px) {
-	body.has-toc {
-		margin-right: 252px;
-	}
-	body.has-toc .marker-toc {
-		width: 220px;
-	}
-}
-
-@media (min-width: 1060px) and (max-width: 1259px) {
-	body.has-toc {
-		width: auto;
-		margin-left: 16px;
-	}
-}
-
-@media (max-width: 1059px) {
-	.marker-toc {
-		display: none;
-	}
 }
