@@ -13,6 +13,14 @@ Built for the workflow where an AI agent (Claude Code etc.) serves a Markdown fi
 
 Everything else is markserv: GitHub-style rendering, themes, syntax highlighting, live reload while you edit.
 
+## Install
+
+```console
+$ npm install -g markserv-marker
+```
+
+Requires Node.js 20 or newer.
+
 ## Usage
 
 ```console
