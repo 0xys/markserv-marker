@@ -86,6 +86,16 @@ Body text.
 	t.deepEqual(paragraph, {tag: 'p', start: 8, end: 8})
 })
 
+test('external links open in a new tab, internal links do not', async t => {
+	const html = await markdownToHTML(
+		'[ext](https://example.com) [sibling](./other.md) [anchor](#heading)\n')
+
+	t.true(html.includes(
+		'<a href="https://example.com" target="_blank" rel="noopener noreferrer">ext</a>'))
+	t.true(html.includes('<a href="./other.md">sibling</a>'))
+	t.true(html.includes('<a href="#heading">anchor</a>'))
+})
+
 test('a --- later in the document is not treated as frontmatter', async t => {
 	const html = await markdownToHTML('# Title\n\n---\n\ntext\n')
 	t.false(html.includes('frontmatter'))
