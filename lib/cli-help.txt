@@ -1,14 +1,37 @@
-Usage
-$ markserv <file/dir>
-$ readme (serve closest README.md file)
+
+Usage: markserv-marker <file-or-directory> [options]
+       markserv-marker <command> [options]
+
+Registers the file with the local markserv-marker daemon (starting it if
+needed) and prints its preview URL. One daemon serves every registered
+file, so there are no port conflicts to check.
+
+Commands
+  daemon              run the daemon in the foreground (shows logs)
+  stop                stop the running daemon
+  status | list       show daemon health and registered files
 
 Options
-	--port, -p,  HTTP port [port] (8642)
-	--hotreload, -l  Hot-reload via WebSocket (true), disable with --no-hotreload
-	--browser, -b  Launch browser (true)
-	--silent, -i  Silent (false)
-	--address, -a  Serve on ip/address [address] (localhost)
-	--verbose, -v  Verbose output (false)
-	--light  Use light theme (default: dark)
-	--synthwave  Use synthwave/retro-neon theme (default: dark)
-	--templates  Enable {file:}, {markdown:}, {html:}, {less:} templating (false)
+  -p, --port          daemon port                            [default: 7642]
+  -a, --address       daemon address                    [default: localhost]
+  -b, --browser       open the browser after registering      [default: on]
+      --no-browser    do not open the browser
+      --json          print one machine-readable JSON object and exit
+  -l, --hotreload     live-reload pages on file change        [default: on]
+      --no-hotreload  disable live reload
+      --theme         theme: dark | light | synthwave | solarized
+      --light         shortcut for --theme light
+      --synthwave     shortcut for --theme synthwave
+  -s, --silent        no output (daemon)
+  -v, --verbose       verbose request logging (daemon)
+
+Examples
+  $ markserv-marker README.md
+  $ markserv-marker README.md --json
+  $ markserv-marker stop
+
+Comments API (for agents)
+  GET  /api/files                          list registered files
+  GET  /api/files/:id/comments?resolved=false
+  POST /api/files/:id/comments             {"line": 12, "body": "...", "author": "claude"}
+  PATCH /api/comments/:id                  {"resolved": true}

@@ -1,0 +1,359 @@
+/* Line-anchored comment UI for markserv-marker */
+
+/* Comment visibility toggle in the page controls (pill with a label) */
+.marker-view-btn {
+	width: auto !important;
+	padding: 0 12px !important;
+	border-radius: 17px !important;
+	font-size: 12px !important;
+	white-space: nowrap;
+	gap: 5px;
+}
+
+
+.marker-select-btn {
+	display: none;
+	position: absolute;
+	z-index: 40;
+	padding: 4px 12px;
+	border: none;
+	border-radius: 6px;
+	background: #2f81f7;
+	color: #fff;
+	font-size: 13px;
+	cursor: pointer;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.marker-select-btn:hover {
+	background: #4a91f9;
+}
+
+mark.marker-quote {
+	background: rgba(210, 153, 34, 0.35);
+	color: inherit;
+	border-bottom: 2px solid rgba(210, 153, 34, 0.9);
+	cursor: pointer;
+	padding: 0;
+}
+
+mark.marker-quote:hover {
+	background: rgba(210, 153, 34, 0.55);
+}
+
+mark.marker-quote.resolved {
+	background: rgba(63, 185, 80, 0.18);
+	border-bottom-color: rgba(63, 185, 80, 0.6);
+}
+
+.marker-quote-preview {
+	margin-bottom: 6px;
+	padding: 4px 8px;
+	border-left: 3px solid rgba(210, 153, 34, 0.9);
+	background: rgba(210, 153, 34, 0.12);
+	font-size: 13px;
+	opacity: 0.85;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.marker-head-quote {
+	flex: 1;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: 12px;
+	font-style: italic;
+	opacity: 0.65;
+}
+
+.marker-thread.flash {
+	box-shadow: 0 0 0 2px #2f81f7;
+	transition: box-shadow 0.3s;
+}
+
+.marker-changed-badge {
+	font-size: 11px;
+	padding: 1px 7px;
+	border-radius: 8px;
+	background: rgba(210, 153, 34, 0.35);
+	white-space: nowrap;
+}
+
+.marker-diff {
+	margin: 6px 0;
+	border: 1px solid rgba(128, 128, 128, 0.3);
+	border-radius: 4px;
+	overflow-x: auto;
+	font-family: ui-monospace, SFMono-Regular, monospace;
+	font-size: 12px;
+}
+
+.marker-diff-title {
+	padding: 4px 8px;
+	font-family: inherit;
+	font-size: 12px;
+	opacity: 0.7;
+	border-bottom: 1px solid rgba(128, 128, 128, 0.25);
+}
+
+.marker-diff-head {
+	display: flex;
+	border-bottom: 1px solid rgba(128, 128, 128, 0.25);
+	font-size: 11px;
+	opacity: 0.6;
+}
+
+.marker-diff-head span {
+	flex: 1;
+	padding: 2px 8px;
+}
+
+.marker-diff-head span + span {
+	border-left: 1px solid rgba(128, 128, 128, 0.25);
+}
+
+.marker-diff-table {
+	width: 100%;
+	border-collapse: collapse;
+	table-layout: fixed;
+}
+
+.marker-diff-cell {
+	width: 50%;
+	padding: 1px 8px;
+	vertical-align: top;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.marker-diff-cell:first-child {
+	border-right: 1px solid rgba(128, 128, 128, 0.25);
+}
+
+.marker-diff-cell.del {
+	background: rgba(248, 81, 73, 0.12);
+}
+
+.marker-diff-cell.del .chg {
+	background: rgba(248, 81, 73, 0.45);
+	border-radius: 2px;
+}
+
+.marker-diff-cell.add {
+	background: rgba(63, 185, 80, 0.12);
+}
+
+.marker-diff-cell.add .chg {
+	background: rgba(63, 185, 80, 0.45);
+	border-radius: 2px;
+}
+
+.marker-diff-cell.empty {
+	background: rgba(128, 128, 128, 0.08);
+}
+
+.marker-diff-cell.ctx {
+	opacity: 0.65;
+}
+
+.marker-thread,
+.marker-form {
+	margin: 8px 0 16px;
+	border: 1px solid rgba(128, 128, 128, 0.35);
+	border-left: 3px solid #2f81f7;
+	border-radius: 6px;
+	background: rgba(128, 128, 128, 0.08);
+	font-size: 14px;
+}
+
+.marker-thread.resolved {
+	border-left-color: #3fb950;
+	opacity: 0.85;
+}
+
+.marker-thread.collapsed .marker-thread-body {
+	display: none;
+}
+
+.marker-thread-head {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 2px 10px;
+	border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+	cursor: pointer;
+	user-select: none;
+	transition: background 0.1s ease;
+}
+
+.marker-thread-head:hover {
+	background: rgba(128, 128, 128, 0.15);
+}
+
+.marker-chevron {
+	font-size: 16px;
+	line-height: 1;
+	height: 16px;
+	overflow: hidden;
+	opacity: 0.7;
+	flex-shrink: 0;
+}
+
+.marker-thread.collapsed .marker-thread-head {
+	border-bottom: none;
+}
+
+.marker-lines {
+	font-family: monospace;
+	font-size: 12px;
+	font-weight: 600;
+	opacity: 0.75;
+}
+
+.marker-count {
+	font-size: 12px;
+	opacity: 0.7;
+	flex: 1;
+}
+
+.marker-thread-body {
+	padding: 4px 10px 8px;
+}
+
+.marker-comment {
+	padding: 6px 0;
+	border-bottom: 1px dashed rgba(128, 128, 128, 0.2);
+}
+
+.marker-comment:last-of-type {
+	border-bottom: none;
+}
+
+.marker-comment-head {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+	margin-bottom: 2px;
+}
+
+.marker-author {
+	font-weight: 600;
+}
+
+.marker-time {
+	font-size: 11px;
+	opacity: 0.6;
+	flex: 1;
+}
+
+.marker-delete {
+	font-size: 11px;
+	opacity: 0.5;
+}
+
+.marker-delete:hover {
+	opacity: 1;
+}
+
+.marker-body {
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.marker-form {
+	padding: 8px 10px;
+}
+
+/* Inside a thread the reply form is not its own box — no nested borders */
+.marker-thread .marker-form {
+	margin: 4px 0 0;
+	padding: 0;
+	border: none;
+	background: none;
+	border-radius: 0;
+}
+
+.marker-textarea {
+	width: 100%;
+	min-height: 64px;
+	box-sizing: border-box;
+	padding: 6px 8px;
+	border: 1px solid rgba(128, 128, 128, 0.4);
+	border-radius: 4px;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	font-size: 14px;
+	resize: vertical;
+}
+
+.marker-form-actions {
+	display: flex;
+	gap: 8px;
+	margin-top: 6px;
+}
+
+.marker-btn {
+	padding: 3px 12px;
+	border: 1px solid rgba(128, 128, 128, 0.4);
+	border-radius: 4px;
+	background: rgba(128, 128, 128, 0.15);
+	color: inherit;
+	font-size: 13px;
+	cursor: pointer;
+}
+
+.marker-btn:hover {
+	background: rgba(128, 128, 128, 0.3);
+}
+
+.marker-btn-primary {
+	background: #2f81f7;
+	border-color: #2f81f7;
+	color: #fff;
+}
+
+.marker-btn-primary:hover {
+	background: #4a91f9;
+}
+
+.marker-btn-primary:disabled {
+	opacity: 0.6;
+	cursor: default;
+}
+
+.marker-btn-small {
+	padding: 1px 8px;
+	font-size: 12px;
+}
+
+/* In the thread header the resolve control is a plain text link */
+.marker-thread-head .marker-btn-small {
+	border: none;
+	background: none;
+	padding: 1px 2px;
+	color: #2f81f7;
+}
+
+.marker-thread-head .marker-btn-small:hover {
+	background: none;
+	text-decoration: underline;
+}
+
+.marker-link {
+	font-size: 12px;
+	color: #2f81f7;
+	text-decoration: none;
+	cursor: pointer;
+}
+
+.marker-link:hover {
+	text-decoration: underline;
+}
+
+#marker-unanchored {
+	margin-top: 32px;
+	padding-top: 8px;
+	border-top: 1px dashed rgba(128, 128, 128, 0.4);
+}

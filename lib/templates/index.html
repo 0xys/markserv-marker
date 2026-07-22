@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html data-theme="{{theme}}">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<title>markserv-marker</title>
+	<link rel="stylesheet" id="theme-dark" href="{markserv}templates/github-markdown-dark.css"{{#unless themeDark}} disabled{{/unless}}>
+	<link rel="stylesheet" id="theme-light" href="{markserv}templates/github-markdown-light.css"{{#unless themeLight}} disabled{{/unless}}>
+	<link rel="stylesheet" id="theme-synthwave" href="{markserv}templates/github-markdown-synthwave.css"{{#unless themeSynthwave}} disabled{{/unless}}>
+	<link rel="stylesheet" id="theme-solarized" href="{markserv}templates/github-markdown-solarized.css"{{#unless themeSolarized}} disabled{{/unless}}>
+	<link rel="stylesheet" href="{markserv}templates/markserv.css">
+	<link rel="stylesheet" href="{markserv}icons/icons.css">
+	<style>
+		.marker-index-table { width: 100%; border-collapse: collapse; }
+		.marker-index-table td, .marker-index-table th { padding: 6px 10px; }
+		/* icons.css positions .icon:before for <li> rows (absolute, -32px);
+		   re-anchor it inside the table cells */
+		.marker-index-table .icon {
+			position: relative;
+			display: inline-block;
+			padding-left: 26px;
+		}
+		.marker-index-table .icon:before {
+			position: absolute;
+			left: 0;
+			top: 50%;
+			transform: translateY(-50%);
+			margin: 0;
+			width: 18px;
+			height: 18px;
+		}
+		.marker-badge {
+			display: inline-block; padding: 1px 8px; border-radius: 10px;
+			font-size: 12px; background: rgba(128, 128, 128, 0.25);
+		}
+		.marker-badge.unresolved { background: rgba(210, 153, 34, 0.45); }
+		.marker-path { opacity: 0.55; font-size: 12px; }
+		.marker-empty { opacity: 0.7; }
+		.marker-unregister {
+			border: none; background: none; cursor: pointer;
+			color: inherit; opacity: 0.4; font-size: 14px; padding: 2px 6px;
+		}
+		.marker-unregister:hover { opacity: 1; color: #f85149; }
+		.marker-pager { margin-top: 8px; font-size: 13px; display: flex; gap: 12px; align-items: center; }
+		.marker-pager a { text-decoration: none; }
+		.marker-pager .disabled { opacity: 0.35; pointer-events: none; }
+	</style>
+</head>
+<body class="dir">
+<article class="markdown-body">
+<h1>markserv-marker</h1>
+{{#if hasFiles}}
+<table class="marker-index-table">
+	<thead>
+		<tr><th align="left">file</th><th align="left">comments</th><th align="left">registered</th><th></th></tr>
+	</thead>
+	<tbody>
+		{{#each files}}
+		<tr>
+			<td>
+				<span class="icon {{iconClass}} {{#if isDir}}isfolder{{else}}isfile{{/if}}"><a href="{{urlPath}}">{{name}}</a></span>
+				<div class="marker-path">{{path}}</div>
+			</td>
+			<td>
+				{{#if comments.total}}
+				<span class="marker-badge{{#if comments.unresolved}} unresolved{{/if}}">{{comments.unresolved}} open / {{comments.total}}</span>
+				{{else}}
+				<span class="marker-badge">0</span>
+				{{/if}}
+			</td>
+			<td><span class="marker-path">{{registeredAt}}</span></td>
+			<td><button class="marker-unregister" data-id="{{id}}" data-name="{{name}}" title="Unregister">✕</button></td>
+		</tr>
+		{{/each}}
+	</tbody>
+</table>
+{{#if paged}}
+<nav class="marker-pager">
+	<a href="/?page={{prevPage}}" class="{{#unless hasPrev}}disabled{{/unless}}">← prev</a>
+	<span>{{page}} / {{totalPages}} ({{totalFiles}} files)</span>
+	<a href="/?page={{nextPage}}" class="{{#unless hasNext}}disabled{{/unless}}">next →</a>
+</nav>
+{{/if}}
+{{else}}
+<p class="marker-empty">No files registered yet. Register one with:</p>
+<pre><code>markserv-marker path/to/file.md</code></pre>
+{{/if}}
+<footer><sup><hr> <a href="https://github.com/0xys/markserv-marker">markserv-marker</a> v{{version}} | inspired by <a href="https://github.com/markserv/markserv">markserv</a> | PID: {{pid}}</sup></footer>
+</article>
+<div class="page-controls">
+	<button class="page-btn" id="theme-toggle" title="Toggle theme"></button>
+</div>
+<script>
+(function() {
+	document.querySelectorAll('.marker-unregister').forEach(function(btn) {
+		btn.addEventListener('click', function() {
+			var name = btn.getAttribute('data-name');
+			if (!confirm('Unregister "' + name + '"? Its comments will be discarded.')) return;
+			fetch('/api/files/' + btn.getAttribute('data-id'), {method: 'DELETE'})
+				.then(function() { location.reload(); })
+				.catch(function(err) { alert('Failed to unregister: ' + err.message); });
+		});
+	});
+})();
+</script>
+<script>
+(function() {
+	var themes = ['dark', 'light', 'synthwave', 'solarized'];
+	var icons = {dark: '\u{1F319}', light: '\u{2600}\u{FE0F}', synthwave: '\u{1F9D1}\u{200D}\u{1F3A4}', solarized: '\u{262F}\u{FE0F}'};
+	var serverTheme = '{{theme}}' || 'dark';
+	var current = localStorage.getItem('markserv-theme') || serverTheme;
+
+	function applyTheme(t) {
+		document.documentElement.setAttribute('data-theme', t);
+		themes.forEach(function(name) {
+			var el = document.getElementById('theme-' + name);
+			if (el) el.disabled = (name !== t);
+		});
+		var btn = document.getElementById('theme-toggle');
+		if (btn) btn.textContent = icons[t] || icons.dark;
+		current = t;
+	}
+
+	applyTheme(current);
+
+	document.getElementById('theme-toggle').addEventListener('click', function() {
+		var idx = themes.indexOf(current);
+		var next = themes[(idx + 1) % themes.length];
+		localStorage.setItem('markserv-theme', next);
+		applyTheme(next);
+	});
+})();
+</script>
+</body>
+</html>

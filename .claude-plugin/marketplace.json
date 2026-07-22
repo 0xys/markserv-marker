@@ -1,0 +1,16 @@
+{
+  "name": "markserv-marker",
+  "owner": {
+    "name": "0xys"
+  },
+  "metadata": {
+    "description": "Claude Code plugins from the markserv-marker repository"
+  },
+  "plugins": [
+    {
+      "name": "markserv-marker",
+      "source": "./plugins/markserv-marker",
+      "description": "Human-in-the-loop markdown review: serve a file for browser comments, then resolve the feedback via API"
+    }
+  ]
+}
