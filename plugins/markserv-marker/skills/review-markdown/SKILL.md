@@ -1,42 +1,16 @@
 ---
-name: review
-description: Human-in-the-loop markdown review via markserv-marker. `open` serves a markdown file in the browser for a human to leave selection-anchored comments; `resolve` reads the comments back over the API, fixes the file accordingly, replies and resolves each thread.
-argument-hint: "[ open | resolve ] [file-path]"
+name: review-markdown
+description: Process human review comments on a markdown file served by markserv-marker. Reads unresolved comment threads over the API, edits the file to address each piece of feedback, replies and resolves the threads. Use when asked to handle/apply review comments.
+argument-hint: "[file-path]"
 allowed-tools: Read, Edit, Glob, Grep, Bash
 ---
 
-markserv-marker review skill
+Resolve markdown review comments
 ===
 
-[markserv-marker](https://github.com/0xys/markserv-marker) runs a single local daemon (default `http://localhost:7642`) that renders markdown with GitHub styling and lets a human select text in the browser and leave threaded review comments. Everything the browser UI does is also available as a JSON API, which makes this loop possible:
+[markserv-marker](https://github.com/0xys/markserv-marker) runs a single local daemon (default `http://localhost:7642`) that serves markdown files a human can comment on in the browser (selection-anchored, threaded). This skill reads that feedback back over the API and applies it. Serving a file in the first place is `/markserv-marker:open-markdown`.
 
-1. the agent serves a markdown file (`open`),
-2. a human reviews it in the browser and leaves comments,
-3. the agent reads the comments, edits the file, replies and resolves (`resolve`).
-
-| Mode | Section | Description |
-|------|---------|-------------|
-| `open` | "Open mode" below | Register a markdown file with the daemon and open it in the browser for review. |
-| `resolve` | "Resolve mode" below | Read unresolved comments, address each one by editing the file, then reply and resolve. |
-
-**Prerequisite**: the `markserv-marker` command must be on PATH. If it is missing, tell the user to install it with `npm i -g markserv-marker` (or `npm link` from a checkout of the repository) and stop.
-
-# Open mode
-
-1. Determine the target markdown file from the argument or the conversation context. If neither identifies a file, ask the user.
-2. Register it and capture the registration:
-   ```console
-   $ markserv-marker <path> --no-browser --json
-   {"id":"<fileId>","url":"http://localhost:7642/f/<fileId>/<name>", ...}
-   ```
-   The daemon starts automatically if it is not running. Registration is idempotent — re-registering the same file returns the same `id` and `url`. Remember the `id`; `resolve` mode needs it.
-3. Open the page for the user: `open "<url>"` (macOS). If that fails, just show the URL.
-4. Report to the user:
-   - the preview URL (and that the index of all served files is at `http://localhost:7642/`),
-   - how to comment: select any text in the rendered page and press the floating Comment button; threads support replies and resolve,
-   - that they should invoke this skill's `resolve` mode when they are done commenting.
-
-# Resolve mode
+# Steps
 
 1. Identify the target file: from the argument or context. If unknown, list the candidates with `GET http://localhost:7642/api/files` (each entry has `id`, `path`, and `comments: {total, unresolved}`) and pick the obvious one, or ask the user.
 2. Fetch the work:
@@ -58,23 +32,7 @@ markserv-marker review skill
 5. File edits reach the human's browser instantly via hot reload — no manual refresh is needed on their side.
 6. Finish with a summary: how many threads were fixed and resolved, and which were left open with the reason (clarification asked, out of scope, outdated).
 
-# Reference
-
-## CLI
-
-```console
-$ markserv-marker <file-or-dir>      # register (auto-starts the daemon), open browser, print URL
-$ markserv-marker <path> --json      # machine-readable: {"id","url","path","created",...} on one line
-$ markserv-marker status             # daemon health + registered files (supports --json)
-$ markserv-marker stop               # stop the daemon
-$ markserv-marker daemon             # run the daemon in the foreground (to see logs)
-```
-
-Flags: `--port/-p` (default `7642`), `--address/-a` (default `localhost`), `--no-browser`, `--json`, `--theme dark|light|synthwave|solarized`, `--no-hotreload`, `--silent`, `--verbose`.
-
-Registration is idempotent (`id` = hash of the file's realpath). Registering a file serves its whole parent directory under `/f/<id>/`, so relative images and sibling links work. Comments live in daemon memory only — `stop` discards them.
-
-## API
+# API reference
 
 Base URL `http://localhost:7642`. All bodies are JSON.
 

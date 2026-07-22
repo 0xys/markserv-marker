@@ -46,23 +46,23 @@ This repo doubles as a Claude Code plugin that packages the review workflow as a
 /plugin install markserv-marker@markserv-marker
 ```
 
-Then `/markserv-marker:review open <file.md>` serves a file for review, and
-`/markserv-marker:review resolve` reads the comments back, applies the feedback,
+Then `/markserv-marker:open-markdown <file.md>` serves a file for review, and
+`/markserv-marker:review-markdown` reads the comments back, applies the feedback,
 replies and resolves each thread. (Working inside a clone of this repo, the same
-skill is available as `/review`.)
+skills are available as `/open-markdown` and `/review-markdown`.)
 
 ## Agent workflow
 
 With the plugin installed, a full review round-trip is two skill invocations in Claude Code:
 
 ```text
-> /markserv-marker:review open docs/design.md
+> /markserv-marker:open-markdown docs/design.md
 
   Claude registers the file with the daemon and opens it in your browser.
   You read it there, select any text and leave comments — threads,
   replies and resolve all work in the page.
 
-> /markserv-marker:review resolve
+> /markserv-marker:review-markdown
 
   Claude reads every unresolved thread over the API, edits the file to
   address each piece of feedback, replies to the thread (author:

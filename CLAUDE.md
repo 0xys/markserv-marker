@@ -45,8 +45,8 @@ markserv-marker is a fork of markserv v1.18.0 (first commit is the pristine impo
 - Snapshot/diff tests write to their fixture files and must restore them, since later tests assert on content.
 - `xo --fix` can be overeager (it once rewrote a string index loop to `String.entries()`, which doesn't exist) — rerun the tests after any autofix.
 
-## Review workflow skill / plugin
+## Review workflow skills / plugin
 
-`plugins/markserv-marker/skills/review/SKILL.md` defines the human-in-the-loop review flow this tool exists for: `open` serves a file for a human to comment on in the browser; `resolve` reads unresolved threads from the API, edits the file, replies as `author: "claude"` (in the session language) and resolves each thread. Use it when asked to have a markdown file reviewed or to process review comments.
+`plugins/markserv-marker/skills/` defines the human-in-the-loop review flow this tool exists for, split into two skills: `open-markdown` serves a file for a human to comment on in the browser; `review-markdown` reads unresolved threads from the API, edits the file, replies as `author: "claude"` (in the session language) and resolves each thread. Use them when asked to have a markdown file reviewed or to process review comments.
 
-Inside this repo it is available as the project skill `/review` (via the `.claude/skills/review` symlink). The repo is also a Claude Code plugin marketplace (`.claude-plugin/marketplace.json` + `plugins/markserv-marker/`): installed as a plugin, the skill is `/markserv-marker:review`.
+Inside this repo they are available as the project skills `/open-markdown` and `/review-markdown` (via `.claude/skills/` symlinks). The repo is also a Claude Code plugin marketplace (`.claude-plugin/marketplace.json` + `plugins/markserv-marker/`): installed as a plugin, they are `/markserv-marker:open-markdown` and `/markserv-marker:review-markdown`.
