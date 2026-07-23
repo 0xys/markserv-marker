@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <clipPath id="win"><rect x="60" y="90" width="620" height="440" rx="12"/></clipPath>
+  </defs>
+
+  <!-- Canvas -->
+  <rect width="1200" height="600" fill="#0d1117"/>
+  <rect x="0.5" y="0.5" width="1199" height="599" rx="16" fill="none" stroke="#30363d"/>
+
+  <!-- ============ Browser window (left) ============ -->
+  <g clip-path="url(#win)">
+    <rect x="60" y="90" width="620" height="440" fill="#161b22"/>
+    <!-- title bar -->
+    <rect x="60" y="90" width="620" height="40" fill="#21262d"/>
+    <circle cx="86" cy="110" r="6" fill="#ff5f57"/>
+    <circle cx="106" cy="110" r="6" fill="#febc2e"/>
+    <circle cx="126" cy="110" r="6" fill="#28c840"/>
+    <rect x="150" y="98" width="380" height="24" rx="12" fill="#0d1117"/>
+    <text x="166" y="114" font-size="12" fill="#8b949e">localhost:7642/f/a1b2c3d4e5/design-doc.md</text>
+
+    <!-- markdown content -->
+    <text x="100" y="172" font-size="22" font-weight="700" fill="#e6edf3"># Design Doc</text>
+    <rect x="100" y="188" width="540" height="1" fill="#30363d"/>
+
+    <rect x="100" y="208" width="500" height="9" rx="4.5" fill="#3d444d"/>
+    <rect x="100" y="228" width="460" height="9" rx="4.5" fill="#3d444d"/>
+
+    <!-- paragraph with highlighted selection -->
+    <rect x="100" y="252" width="150" height="9" rx="4.5" fill="#3d444d"/>
+    <rect x="256" y="246" width="216" height="21" rx="3" fill="#d29922" opacity="0.45"/>
+    <rect x="262" y="252" width="204" height="9" rx="4.5" fill="#e6edf3"/>
+    <rect x="478" y="252" width="120" height="9" rx="4.5" fill="#3d444d"/>
+    <rect x="256" y="265" width="216" height="2" fill="#d29922"/>
+
+    <!-- floating comment button, right below the selection -->
+    <g>
+      <path d="M356 278 l8 -8 8 8 z" fill="#2f81f7"/>
+      <rect x="308" y="277" width="112" height="32" rx="8" fill="#2f81f7"/>
+      <text x="364" y="298" font-size="14" fill="#ffffff" text-anchor="middle">💬 Comment</text>
+    </g>
+
+    <!-- comment thread widget -->
+    <g>
+      <rect x="100" y="322" width="540" height="128" rx="8" fill="#1c2128" stroke="#30363d"/>
+      <rect x="100" y="322" width="3" height="128" fill="#2f81f7"/>
+      <!-- head -->
+      <text x="118" y="346" font-size="12" fill="#8b949e">▾</text>
+      <text x="134" y="346" font-size="12" font-weight="700" font-family="ui-monospace, SFMono-Regular, monospace" fill="#8b949e">L12</text>
+      <text x="170" y="346" font-size="12" font-style="italic" fill="#6e7681">“keeps comments in memory…”</text>
+      <text x="560" y="346" font-size="12" fill="#2f81f7">✔︎ Resolve</text>
+      <rect x="100" y="356" width="540" height="1" fill="#30363d"/>
+      <!-- root comment -->
+      <text x="118" y="378" font-size="12" font-weight="700" fill="#e6edf3">reviewer</text>
+      <text x="180" y="378" font-size="11" fill="#6e7681">10:24</text>
+      <text x="118" y="396" font-size="12" fill="#c9d1d9">Is this still true after a restart? Worth calling out explicitly.</text>
+      <!-- reply -->
+      <text x="118" y="418" font-size="12" font-weight="700" fill="#7ee787">claude</text>
+      <text x="168" y="418" font-size="11" fill="#6e7681">10:26</text>
+      <text x="118" y="436" font-size="12" fill="#c9d1d9">Good catch — added a note that comments only live for the daemon's lifetime.</text>
+    </g>
+
+    <!-- more text below -->
+    <text x="100" y="488" font-size="16" font-weight="700" fill="#e6edf3">## Rollout</text>
+    <rect x="100" y="502" width="520" height="9" rx="4.5" fill="#3d444d"/>
+    <rect x="100" y="518" width="470" height="9" rx="4.5" fill="#3d444d"/>
+  </g>
+  <rect x="60" y="90" width="620" height="440" rx="12" fill="none" stroke="#30363d"/>
+
+  <!-- ============ Right column ============ -->
+  <text x="740" y="150" font-size="40" font-weight="800" fill="#e6edf3">markserv-marker</text>
+  <text x="740" y="182" font-size="16" fill="#8b949e">Markdown review for humans and AI agents</text>
+
+  <!-- loop diagram -->
+  <g font-size="14">
+    <!-- nodes -->
+    <g>
+      <rect x="740" y="240" width="200" height="56" rx="10" fill="#161b22" stroke="#30363d"/>
+      <text x="756" y="264" fill="#e6edf3" font-weight="700">① agent serves</text>
+      <text x="756" y="284" fill="#8b949e" font-size="11" font-family="ui-monospace, SFMono-Regular, monospace">$ markserv-marker doc.md</text>
+    </g>
+    <g>
+      <rect x="960" y="240" width="180" height="56" rx="10" fill="#161b22" stroke="#30363d"/>
+      <text x="976" y="264" fill="#e6edf3" font-weight="700">② human comments</text>
+      <text x="976" y="284" fill="#8b949e" font-size="11">select text in the browser</text>
+    </g>
+    <g>
+      <rect x="850" y="330" width="190" height="56" rx="10" fill="#161b22" stroke="#30363d"/>
+      <text x="866" y="354" fill="#e6edf3" font-weight="700">③ agent resolves</text>
+      <text x="866" y="374" fill="#8b949e" font-size="11">edit · reply · resolve (API)</text>
+    </g>
+    <!-- arrows -->
+    <g stroke="#2f81f7" stroke-width="2" fill="none">
+      <path d="M942 268 h12"/>
+      <path d="M1052 298 q10 22 -30 34"/>
+      <path d="M848 362 q-40 -10 -22 -62"/>
+    </g>
+    <g fill="#2f81f7">
+      <path d="M956 262 l10 6 -10 6 z"/>
+      <path d="M1026 328 l-12 2 7 -11 z"/>
+      <path d="M829 304 l-2 -12 10 7 z"/>
+    </g>
+  </g>
+
+  <!-- feature badges -->
+  <g font-size="13" fill="#8b949e">
+    <rect x="740" y="430" width="170" height="30" rx="15" fill="#161b22" stroke="#30363d"/>
+    <text x="825" y="449" text-anchor="middle">single daemon · :7642</text>
+    <rect x="920" y="430" width="100" height="30" rx="15" fill="#161b22" stroke="#30363d"/>
+    <text x="970" y="449" text-anchor="middle">live reload</text>
+    <rect x="1030" y="430" width="120" height="30" rx="15" fill="#161b22" stroke="#30363d"/>
+    <text x="1090" y="449" text-anchor="middle">comments API</text>
+    <rect x="740" y="470" width="160" height="30" rx="15" fill="#161b22" stroke="#30363d"/>
+    <text x="820" y="489" text-anchor="middle">snapshot diffs</text>
+    <rect x="910" y="470" width="180" height="30" rx="15" fill="#161b22" stroke="#30363d"/>
+    <text x="1000" y="489" text-anchor="middle">Claude Code plugin</text>
+  </g>
+
+  <text x="740" y="545" font-size="12" fill="#6e7681">a markserv fork · MIT</text>
+</svg>

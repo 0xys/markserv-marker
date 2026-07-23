@@ -1,5 +1,7 @@
 # markserv-marker
 
+<p align="center"><img src="media/hero.svg" alt="markserv-marker — markdown review for humans and AI agents" width="100%"></p>
+
 Single-daemon Markdown preview server with **selection-anchored review comments** — a fork of [markserv](https://github.com/markserv/markserv).
 
 Built for the workflow where an AI agent (Claude Code etc.) serves a Markdown file, a human reviews it in the browser and leaves comments on specific lines, and the agent reads the comments back over a JSON API.
