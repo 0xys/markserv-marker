@@ -1,7 +1,7 @@
 ---
 name: review-markdown
 description: Process human review comments on a markdown file served by markserv-marker. Reads unresolved comment threads over the API, edits the file to address each piece of feedback, replies and resolves the threads. Use when asked to handle/apply review comments.
-argument-hint: "[file-path]"
+argument-hint: "[file-path | localhost URL | inferred from context if empty]"
 allowed-tools: Read, Edit, Glob, Grep, Bash
 ---
 
@@ -12,7 +12,7 @@ Resolve markdown review comments
 
 # Steps
 
-1. Identify the target file: from the argument or context. If unknown, list the candidates with `GET http://localhost:7642/api/files` (each entry has `id`, `path`, and `comments: {total, unresolved}`) and pick the obvious one, or ask the user.
+1. Identify the target file: from the argument or context. A localhost URL like `http://localhost:7642/f/<id>/<name>` carries the file id directly — extract the `<id>` path segment and use it as-is. If still unknown, list the candidates with `GET http://localhost:7642/api/files` (each entry has `id`, `path`, and `comments: {total, unresolved}`) and pick the obvious one, or ask the user.
 2. Fetch the work:
    - `GET /api/files/<id>/comments?resolved=false` — unresolved threads. Each thread has `lineStart`/`lineEnd` (1-based source lines), `quote` (the text the human selected), `body`, `author`, `replies`, and staleness info: `snapshot` (the lines as they were when the comment was written), `currentText` and `changed`.
    - `GET /api/files/<id>/content` — the current markdown source, for mapping line numbers to text.

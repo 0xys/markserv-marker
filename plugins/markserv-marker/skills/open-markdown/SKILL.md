@@ -1,7 +1,7 @@
 ---
 name: open-markdown
 description: Serve a markdown file with markserv-marker and open it in the browser so a human can review it and leave selection-anchored comments. Use when asked to open/preview a markdown file for review.
-argument-hint: "[file-path]"
+argument-hint: "[file-path | localhost URL | inferred from context if empty]"
 allowed-tools: Read, Glob, Grep, Bash
 ---
 
@@ -25,7 +25,7 @@ $ cd markserv-marker && npm install && npm link
 
 # Steps
 
-1. Determine the target markdown file from the argument or the conversation context. If neither identifies a file, ask the user.
+1. Determine the target markdown file from the argument or the conversation context. If given a localhost URL (`http://localhost:7642/f/<id>/<name>`), the file is already registered — extract the `<id>`, confirm it with `GET /api/files/<id>`, and skip to step 3 with its `url`. If nothing identifies a file, ask the user.
 2. Register it and capture the registration:
    ```console
    $ markserv-marker <path> --no-browser --json
