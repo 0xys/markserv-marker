@@ -106,6 +106,7 @@ All request/response bodies are JSON.
 | `GET /api/files/:id/content` | `{path, lines, content}` — raw markdown for line mapping |
 | `GET /api/files/:id/comments` | Threads; filters: `?resolved=false`, `?since=<ISO>` |
 | `POST /api/files/:id/comments` | Root: `{line}` or `{lineStart, lineEnd}` + `{body, author}`, optional `{quote}` (the selected text). Reply: `{parentId, body, author}` |
+| `DELETE /api/files/:id/comments` | Bulk-delete comments; `?resolved=true` clears only resolved threads |
 | `PATCH /api/comments/:id` | `{resolved: true\|false}` and/or `{body}` (resolve works on thread roots only) |
 | `DELETE /api/comments/:id` | Delete (a root takes its replies with it) |
 | `POST /api/shutdown` | Stop the daemon |

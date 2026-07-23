@@ -327,6 +327,43 @@ test.serial('content endpoint exposes raw markdown for line mapping', async t =>
 	t.is(content.data.lines, 6)
 })
 
+test.serial('bulk delete clears comments, optionally only resolved threads', async t => {
+	const bulkPath = path.join(fixtureDir, 'bulk.md')
+	fs.writeFileSync(bulkPath, '# T\n\none\n\ntwo\n\nthree\n')
+	const {reg} = registry.register(bulkPath)
+
+	const openThread = await api('POST', `/files/${reg.id}/comments`, {
+		line: 3, body: 'keep me', author: 'reviewer'
+	})
+	const doneThread = await api('POST', `/files/${reg.id}/comments`, {
+		line: 5, body: 'done already', author: 'reviewer'
+	})
+	await api('POST', `/files/${reg.id}/comments`, {
+		parentId: doneThread.data.id, body: 'fixed', author: 'claude'
+	})
+	await api('PATCH', `/comments/${doneThread.data.id}`, {resolved: true})
+
+	// Clean only the resolved clutter: root + its reply go, open thread stays
+	const cleaned = await api('DELETE', `/files/${reg.id}/comments?resolved=true`)
+	t.is(cleaned.status, 200)
+	t.is(cleaned.data.deleted, 2)
+
+	let list = await api('GET', `/files/${reg.id}/comments`)
+	t.is(list.data.threads.length, 1)
+	t.is(list.data.threads[0].id, openThread.data.id)
+
+	// No filter wipes everything
+	const wiped = await api('DELETE', `/files/${reg.id}/comments`)
+	t.is(wiped.data.deleted, 1)
+	list = await api('GET', `/files/${reg.id}/comments`)
+	t.is(list.data.threads.length, 0)
+
+	const unknown = await api('DELETE', '/files/ffffffffff/comments')
+	t.is(unknown.status, 404)
+
+	registry.unregister(reg.id)
+})
+
 test.serial('comments disappear when the file is unregistered', async t => {
 	registry.unregister(fileId)
 	const list = await api('GET', `/files/${fileId}/comments`)
