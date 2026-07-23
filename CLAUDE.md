@@ -45,6 +45,12 @@ markserv-marker is a fork of markserv v1.18.0 (first commit is the pristine impo
 - Snapshot/diff tests write to their fixture files and must restore them, since later tests assert on content.
 - `xo --fix` can be overeager (it once rewrote a string index loop to `String.entries()`, which doesn't exist) — rerun the tests after any autofix.
 
+## Workflow rules (important)
+
+- Do **not** commit, push, or update the installed Claude Code plugin on your own. Make the changes, report, and wait for the user to ask.
+- A release ships **code, skills and plugin together**: `package.json` version, `plugins/markserv-marker/.claude-plugin/plugin.json` version and the `vX.Y.Z` git tag must be bumped to the same value in one step (`npm version X.Y.Z` + plugin.json edit). Never bump one of them alone.
+- Releases happen only when the user asks. When release-worthy changes have accumulated, ask the user instead of releasing automatically.
+
 ## Review workflow skills / plugin
 
 `plugins/markserv-marker/skills/` defines the human-in-the-loop review flow this tool exists for, split into two skills: `open-markdown` serves a file for a human to comment on in the browser; `review-markdown` reads unresolved threads from the API, edits the file, replies as `author: "claude"` (in the session language) and resolves each thread. Use them when asked to have a markdown file reviewed or to process review comments.
