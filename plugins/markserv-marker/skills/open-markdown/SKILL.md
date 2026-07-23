@@ -10,7 +10,18 @@ Open a markdown file for human review
 
 [markserv-marker](https://github.com/0xys/markserv-marker) runs a single local daemon (default `http://localhost:7642`) that renders markdown with GitHub styling and lets a human select text in the browser and leave threaded review comments. This skill covers the serving side; processing the comments afterwards is `/markserv-marker:review-markdown`.
 
-**Prerequisite**: the `markserv-marker` command must be on PATH. If it is missing, tell the user to install it with `npm i -g markserv-marker` (or `npm link` from a checkout of the repository) and stop.
+**Prerequisite**: the `markserv-marker` command must be on PATH. If it is missing, tell the user to install it and stop. Either way works:
+
+```console
+$ npm i -g markserv-marker
+```
+
+or from source:
+
+```console
+$ git clone https://github.com/0xys/markserv-marker.git
+$ cd markserv-marker && npm install && npm link
+```
 
 # Steps
 

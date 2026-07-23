@@ -19,6 +19,15 @@ Everything else is markserv: GitHub-style rendering, themes, syntax highlighting
 $ npm install -g markserv-marker
 ```
 
+Or from source:
+
+```console
+$ git clone https://github.com/0xys/markserv-marker.git
+$ cd markserv-marker
+$ npm install
+$ npm link        # puts the markserv-marker command on your PATH
+```
+
 Requires Node.js 20 or newer.
 
 ## Usage

@@ -1,7 +1,7 @@
 {
   "name": "markserv-marker",
   "description": "Human-in-the-loop markdown review: serve a file for browser comments, then resolve the feedback via API",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": {
     "name": "0xys",
     "url": "https://github.com/0xys"
