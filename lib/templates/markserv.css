@@ -263,3 +263,8 @@ a.page-btn {
   margin: 0;
   border-radius: 0 0 6px 6px;
 }
+
+/* Tabs in code blocks render 4 columns wide (browser default is 8) */
+.markdown-body pre {
+  tab-size: 4;
+}
