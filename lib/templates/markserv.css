@@ -11,6 +11,7 @@
   --markserv-btn-border: #363b42;
   --markserv-slider-thumb: #58a6ff;
   --markserv-slider-track: #2d333b;
+  --markserv-table-head-bg: #21262d;
 }
 
 [data-theme="light"] {
@@ -23,6 +24,7 @@
   --markserv-btn-border: #d0d7de;
   --markserv-slider-thumb: #0969da;
   --markserv-slider-track: #c5ccd3;
+  --markserv-table-head-bg: #eaeef2;
 }
 
 [data-theme="synthwave"] {
@@ -35,6 +37,7 @@
   --markserv-btn-border: #ff7edb44;
   --markserv-slider-thumb: #ff7edb;
   --markserv-slider-track: #46355e;
+  --markserv-table-head-bg: #372a4d;
 }
 
 [data-theme="solarized"] {
@@ -47,6 +50,7 @@
   --markserv-btn-border: #586e75;
   --markserv-slider-thumb: #2aa198;
   --markserv-slider-track: #0a4a58;
+  --markserv-table-head-bg: #0e4f5e;
 }
 
 body {
@@ -262,6 +266,14 @@ a.page-btn {
 .markdown-body details.frontmatter pre {
   margin: 0;
   border-radius: 0 0 6px 6px;
+}
+
+/* Table header row. The vendored GitHub theme paints it the same colour as an
+   odd body row and only makes it bold, so it reads as just another row. Give it
+   its own surface and a firm rule underneath. */
+.markdown-body thead th {
+  background-color: var(--markserv-table-head-bg);
+  border-bottom: 2px solid var(--markserv-border);
 }
 
 /* Tabs in code blocks render 4 columns wide (browser default is 8) */
