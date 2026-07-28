@@ -1,6 +1,6 @@
 {
   "name": "markserv-marker",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Single-daemon Markdown preview server with selection-anchored review comments — a markserv fork",
   "license": "MIT",
   "author": "0xys",
