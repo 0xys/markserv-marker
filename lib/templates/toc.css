@@ -34,6 +34,21 @@
 	transform: translateX(0);
 }
 
+/* Hover bridge. The handle is absolutely positioned outside the panel's box,
+   so the strip it sits in is not part of the panel's hit area: moving the
+   cursor from the panel to the handle would drop :hover and slide both away
+   before the handle could be clicked. This invisible column spans the panel's
+   full height and keeps :hover alive across the whole handle strip. Only
+   needed while unpinned, so it never covers content once the panel is pinned. */
+.marker-toc:not(.pinned)::before {
+	content: "";
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: -30px;
+	width: 30px;
+}
+
 /* Scrollable body of the panel (the nav itself must not clip the handle) */
 .marker-toc-body {
 	max-height: calc(100vh - 120px);
@@ -53,7 +68,14 @@
 	left: -30px;
 	top: 50%;
 	transform: translateY(-50%);
-	padding: 8px 6px;
+	box-sizing: border-box;
+	/* Flush against the panel: the handle's right edge must land exactly on the
+	   panel's left edge, so the two hit areas touch with no dead pixels. */
+	width: 30px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 8px 0;
 	font-size: 14px;
 	line-height: 1;
 	border-radius: 6px 0 0 6px;
