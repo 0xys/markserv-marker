@@ -101,13 +101,20 @@ test.serial('relative assets next to the file are served', async t => {
 	t.is(response.headers.get('content-type'), 'image/png')
 })
 
-test.serial('sibling markdown under the same root renders without comment UI', async t => {
+test.serial('sibling markdown under the same root is commentable under its own id', async t => {
 	const {reg} = registry.register(path.join(fixtureDir, 'doc.md'))
+	const nestedPath = fs.realpathSync(path.join(fixtureDir, 'sub', 'nested.md'))
 	const response = await fetch(`${base}/f/${reg.id}/sub/nested.md`)
 	t.is(response.status, 200)
 	const html = await response.text()
 	t.true(html.includes('Nested'))
-	t.false(html.includes('window.__marker'))
+
+	// Comments live on a registration of the file itself, not on the
+	// registration the reader came in through
+	const nestedReg = registry.list().find(entry => entry.path === nestedPath)
+	t.truthy(nestedReg)
+	t.is(nestedReg.type, 'file')
+	t.true(html.includes(`fileId: '${nestedReg.id}'`))
 })
 
 test.serial('directory registrations get a listing with breadcrumbs', async t => {
@@ -121,6 +128,37 @@ test.serial('directory registrations get a listing with breadcrumbs', async t =>
 	const redirect = await fetch(`${base}/f/${reg.id}/sub`, {redirect: 'manual'})
 	t.is(redirect.status, 301)
 	t.is(redirect.headers.get('location'), `/f/${reg.id}/sub/`)
+})
+
+test.serial('markdown opened through a directory registration accepts comments', async t => {
+	const {reg} = registry.register(fixtureDir)
+	t.is(reg.type, 'dir')
+
+	const response = await fetch(`${base}/f/${reg.id}/doc.md`)
+	t.is(response.status, 200)
+	const html = await response.text()
+	t.true(html.includes('window.__marker'))
+	t.true(html.includes('comments.js'))
+
+	// The page comments under the file's own registration, not the directory's
+	const docId = registry.register(path.join(fixtureDir, 'doc.md')).reg.id
+	t.not(docId, reg.id)
+	t.true(html.includes(`fileId: '${docId}'`))
+
+	const created = await post(`${base}/api/files/${docId}/comments`, {
+		author: 'human',
+		body: 'from the folder view',
+		lineStart: 3,
+		lineEnd: 3,
+		quote: 'A paragraph.'
+	})
+	t.is(created.status, 201)
+
+	const listed = await fetch(`${base}/api/files/${docId}/comments`)
+	const threads = await listed.json()
+	t.is(threads.threads.length, 1)
+	t.is(threads.threads[0].body, 'from the folder view')
+	t.is(registry.get(reg.id).comments.size, 0)
 })
 
 test.serial('path traversal outside the root is rejected', async t => {

@@ -93,7 +93,12 @@
 		ws.onopen = function() {
 			delay = 1000;
 			retries = 0;
-			ws.send(JSON.stringify({path: location.pathname}));
+			// window.__marker is set by a later inline script, which has run by
+			// the time the socket opens. Its fileId is the registration the
+			// comments live under, which is not the id in the URL when this file
+			// was reached through a directory registration.
+			var marker = window.__marker || {};
+			ws.send(JSON.stringify({path: location.pathname, fileId: marker.fileId || null}));
 		};
 		ws.onmessage = function(e) {
 			var msg;

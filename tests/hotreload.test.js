@@ -43,7 +43,9 @@ test.after.always(() => {
 
 // Connects a ws client registered as viewing the given page path and
 // resolves with the first message matching the predicate
-const listenFor = (pagePath, predicate, timeoutMs = 5000) => new Promise((resolve, reject) => {
+// fileId mirrors what the page reports for its comments, which differs from
+// the id in the URL when the file was reached through a directory registration
+const listenFor = (pagePath, predicate, timeoutMs = 5000, fileId = null) => new Promise((resolve, reject) => {
 	// 127.0.0.1 explicitly: with parallel test files, "localhost" can resolve
 	// to ::1 where an unrelated test server may hold the same port number
 	const ws = new WebSocket(`ws://127.0.0.1:${wsPort}`)
@@ -53,7 +55,7 @@ const listenFor = (pagePath, predicate, timeoutMs = 5000) => new Promise((resolv
 	}, timeoutMs)
 
 	ws.on('open', () => {
-		ws.send(JSON.stringify({path: pagePath}))
+		ws.send(JSON.stringify({path: pagePath, fileId}))
 	})
 
 	ws.on('message', data => {
@@ -108,6 +110,30 @@ test.serial('posting a comment pushes a comments envelope to viewers of that fil
 	const message = await waiting
 	t.is(message.type, 'comments')
 	t.is(message.fileId, reg.id)
+})
+
+test.serial('comment pushes reach a viewer browsing through a directory registration', async t => {
+	const {reg: dirReg} = registry.register(dirA)
+	const {reg: fileReg} = registry.register(path.join(dirA, 'a.md'))
+	t.not(dirReg.id, fileReg.id)
+
+	// The URL says the directory, the page's comments say the file
+	const waiting = listenFor(
+		`/f/${dirReg.id}/a.md`,
+		message => message.type === 'comments',
+		5000,
+		fileReg.id)
+	await settle(300)
+
+	const response = await fetch(`${base}/api/files/${fileReg.id}/comments`, {
+		method: 'POST',
+		headers: {'content-type': 'application/json'},
+		body: JSON.stringify({line: 1, body: 'from the folder view', author: 'test'})
+	})
+	t.is(response.status, 201)
+
+	const message = await waiting
+	t.is(message.fileId, fileReg.id)
 })
 
 test.serial('registrations in different directories reload independently', async t => {
