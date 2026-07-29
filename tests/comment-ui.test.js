@@ -23,8 +23,8 @@ const tick = ms => new Promise(resolve => {
 
 // Builds a jsdom page resembling a rendered registered-file page, with a
 // mocked fetch capturing API calls, and runs comments.js in it
-const buildPage = async threads => {
-	const contentHtml = await markdownToHTML(MARKDOWN)
+const buildPage = async (threads, markdown = MARKDOWN) => {
+	const contentHtml = await markdownToHTML(markdown)
 	const dom = new JSDOM(
 		`<!DOCTYPE html><html><body>
 			<article class="markdown-body"><div id="marker-content">${contentHtml}</div></article>
@@ -139,6 +139,143 @@ test('selecting text shows the comment button and posts with quote + lines', asy
 	t.is(post.body.author, 'tester')
 })
 
+test('shift+enter posts the draft, plain enter and IME enter do not', async t => {
+	const {window, document, calls} = await buildPage([])
+
+	const paragraph = document.querySelector('p[data-source-line="3"]')
+	const textNode = paragraph.firstChild
+	const range = document.createRange()
+	const offset = textNode.nodeValue.indexOf('reviewable')
+	range.setStart(textNode, offset)
+	range.setEnd(textNode, offset + 'reviewable text'.length)
+	const selection = window.getSelection()
+	selection.removeAllRanges()
+	selection.addRange(range)
+
+	document.dispatchEvent(new window.Event('mouseup', {bubbles: true}))
+	await tick(10)
+	document.querySelector('.marker-select-btn')
+		.dispatchEvent(new window.Event('mousedown', {bubbles: true, cancelable: true}))
+	await tick(10)
+
+	// The shortcut is spelled out next to the buttons
+	t.is(document.querySelector('.marker-form .marker-form-hint').textContent,
+		'Shift+Enter to post')
+
+	const textarea = document.querySelector('.marker-form textarea')
+	textarea.value = 'Keyboard only'
+	textarea.dispatchEvent(new window.Event('input', {bubbles: true}))
+
+	const press = init => {
+		const event = new window.KeyboardEvent('keydown', {
+			key: 'Enter', bubbles: true, cancelable: true, ...init
+		})
+		textarea.dispatchEvent(event)
+		return event
+	}
+
+	// Plain Enter stays a newline: not consumed, nothing posted
+	const plain = press({})
+	await tick(20)
+	t.false(plain.defaultPrevented)
+	t.falsy(calls.find(call => call.method === 'POST'))
+
+	// Enter that commits an IME conversion candidate must not post either
+	press({shiftKey: true, isComposing: true})
+	await tick(20)
+	t.falsy(calls.find(call => call.method === 'POST'))
+
+	const shift = press({shiftKey: true})
+	await tick(20)
+	t.true(shift.defaultPrevented)
+
+	const post = calls.find(call => call.method === 'POST')
+	t.truthy(post)
+	t.is(post.body.body, 'Keyboard only')
+	t.is(post.body.quote, 'reviewable text')
+	t.is(post.body.author, 'tester')
+})
+
+// How many times `needle` appears before the first quote highlight
+const occurrenceOfMark = (window, needle) => {
+	const {document} = window
+	const mark = document.querySelector('mark.marker-quote')
+	if (!mark) {
+		return null
+	}
+
+	const range = document.createRange()
+	range.setStart(document.querySelector('#marker-content'), 0)
+	range.setEndBefore(mark)
+	return range.toString().split(needle).length // 1-based occurrence number
+}
+
+// Selects `needle`'s nth (0-based) occurrence inside the given paragraph
+const selectOccurrence = (window, paragraph, needle, nth) => {
+	const textNode = paragraph.firstChild
+	let offset = -1
+	for (let i = 0; i <= nth; i++) {
+		offset = textNode.nodeValue.indexOf(needle, offset + 1)
+	}
+
+	const range = window.document.createRange()
+	range.setStart(textNode, offset)
+	range.setEnd(textNode, offset + needle.length)
+	const selection = window.getSelection()
+	selection.removeAllRanges()
+	selection.addRange(range)
+	window.document.dispatchEvent(new window.Event('mouseup', {bubbles: true}))
+}
+
+// "text" twice in one paragraph, and once more in a later one
+const REPEATED = '# T\n\nkeep the text and also drop the text here.\n\nunrelated text.\n'
+
+const postQuoteIndex = async nth => {
+	const {window, document, calls} = await buildPage([], REPEATED)
+	selectOccurrence(window, document.querySelector('p[data-source-line="3"]'), 'text', nth)
+	await tick(10)
+	document.querySelector('.marker-select-btn')
+		.dispatchEvent(new window.Event('mousedown', {bubbles: true, cancelable: true}))
+	await tick(10)
+
+	const textarea = document.querySelector('.marker-form textarea')
+	textarea.value = 'this one'
+	textarea.dispatchEvent(new window.Event('input', {bubbles: true}))
+	document.querySelector('.marker-form .marker-btn-primary')
+		.dispatchEvent(new window.MouseEvent('click', {bubbles: true}))
+	await tick(20)
+	return calls.find(call => call.method === 'POST').body
+}
+
+test('the selected occurrence of a repeated word is posted as quoteIndex', async t => {
+	const first = await postQuoteIndex(0)
+	t.is(first.quote, 'text')
+	t.is(first.quoteIndex, 0)
+
+	// The second "text" in the same paragraph must not report as the first
+	const second = await postQuoteIndex(1)
+	t.is(second.quote, 'text')
+	t.is(second.quoteIndex, 1)
+})
+
+test('quoteIndex highlights the selected identical word, not always the first', async t => {
+	const withIndex = async quoteIndex => {
+		const {window} = await buildPage([{
+			id: 'abc123-c1', fileId: 'abc123', lineStart: 3, lineEnd: 3,
+			quote: 'text', quoteIndex, parentId: null, author: 'reviewer',
+			body: 'this one', createdAt: '2026-07-21T00:00:00.000Z', resolved: false, replies: []
+		}], REPEATED)
+		return occurrenceOfMark(window, 'text')
+	}
+
+	t.is(await withIndex(0), 1)
+	t.is(await withIndex(1), 2)
+	// Out of range clamps to the last one in the block rather than losing the mark
+	t.is(await withIndex(9), 2)
+	// Missing quoteIndex (comments written before this existed) behaves as 0
+	t.is(await withIndex(undefined), 1)
+})
+
 test('reply and resolve controls issue the right API calls', async t => {
 	const {window, document, calls} = await buildPage([{
 		id: 'abc123-c1',
@@ -181,6 +318,46 @@ test('reply and resolve controls issue the right API calls', async t => {
 	t.truthy(patch)
 	t.true(patch.url.endsWith('/api/comments/abc123-c1'))
 	t.deepEqual(patch.body, {resolved: true})
+})
+
+test('the widget sits by the re-anchored line, not where it was written', async t => {
+	// Two paragraphs were inserted above the commented one, so the API reports
+	// line 7 while the comment was originally written against line 5
+	const contentHtml = await markdownToHTML(
+		'# Doc\n\nintro paragraph.\n\nbrand new paragraph.\n\nthe commented paragraph.\n')
+	const dom = new JSDOM(
+		`<!DOCTYPE html><html><body>
+			<article class="markdown-body"><div id="marker-content">${contentHtml}</div></article>
+			<div class="page-controls"></div>
+		</body></html>`,
+		{url: 'http://localhost:7642/f/abc123/test.md', runScripts: 'outside-only'})
+	const {window} = dom
+	window.__marker = {fileId: 'abc123', apiBase: '/api', hotreload: true}
+	window.localStorage.setItem('markserv-marker-author', 'tester')
+	window.fetch = () => Promise.resolve({
+		ok: true, status: 200,
+		json: () => Promise.resolve({
+			fileId: 'abc123',
+			threads: [{
+				id: 'abc123-c1', fileId: 'abc123', lineStart: 7, lineEnd: 7,
+				quote: 'the commented paragraph.',
+				snapshot: {lineStart: 5, lineEnd: 5, text: 'the commented paragraph.'},
+				currentText: 'the commented paragraph.', changed: false,
+				parentId: null, author: 'reviewer', body: 'Still about this line',
+				createdAt: '2026-07-21T00:00:00.000Z', resolved: false, replies: []
+			}]
+		})
+	})
+	window.eval(COMMENTS_JS)
+	await tick(20)
+
+	const {document} = window
+	const widget = document.querySelector('.marker-thread')
+	t.truthy(widget)
+	// The widget and its highlight both land on the paragraph the text is in now
+	t.is(widget.previousElementSibling.dataset.sourceLine, '7')
+	const mark = document.querySelector('mark.marker-quote')
+	t.is(mark.closest('[data-source-line]').dataset.sourceLine, '7')
 })
 
 test('a changed snapshot renders a diff inside the thread', async t => {

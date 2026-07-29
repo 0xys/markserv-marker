@@ -200,6 +200,127 @@ test.serial('edits above the comment do not flag it as changed', async t => {
 	registry.unregister(reg.id)
 })
 
+test.serial('quoteIndex narrows to the selected occurrence inside the block', async t => {
+	// One sentence per line, so all three lines are a single paragraph block
+	// and the UI can only report 3-5. "TODO" appears on lines 3 and 5.
+	const dupePath = path.join(fixtureDir, 'dupes.md')
+	fs.writeFileSync(dupePath,
+		['# Doc', '', 'まず TODO を確認する。', '次に別の作業をする。', '最後に TODO を消す。', ''].join('\n'))
+	const {reg} = registry.register(dupePath)
+
+	const post = (quoteIndex, body) => api('POST', `/files/${reg.id}/comments`, {
+		lineStart: 3, lineEnd: 5, quote: 'TODO', quoteIndex, body, author: 'reviewer'
+	})
+
+	const first = await post(0, 'the one on line 3')
+	t.is(first.data.lineStart, 3)
+	t.is(first.data.quoteIndex, 0)
+	t.is(first.data.snapshot.text, 'まず TODO を確認する。')
+
+	const second = await post(1, 'the one on line 5')
+	t.is(second.data.lineStart, 5)
+	t.is(second.data.lineEnd, 5)
+	t.is(second.data.quoteIndex, 1)
+	t.is(second.data.snapshot.text, '最後に TODO を消す。')
+
+	// Omitting it keeps the old behaviour: the first occurrence
+	const legacy = await api('POST', `/files/${reg.id}/comments`, {
+		lineStart: 3, lineEnd: 5, quote: 'TODO', body: 'no index', author: 'reviewer'
+	})
+	t.is(legacy.data.lineStart, 3)
+	t.is(legacy.data.quoteIndex, 0)
+
+	// More than the source has: clamped to the last one rather than rejected
+	const beyond = await post(9, 'out of range')
+	t.is(beyond.data.lineStart, 5)
+
+	// Replies carry no quote, so no index either
+	const reply = await api('POST', `/files/${reg.id}/comments`, {
+		parentId: second.data.id, body: 'ack', author: 'claude'
+	})
+	t.is(reply.data.quoteIndex, 0)
+
+	const bad = await api('POST', `/files/${reg.id}/comments`, {
+		lineStart: 3, lineEnd: 5, quote: 'TODO', quoteIndex: -1, body: 'x', author: 'y'
+	})
+	t.is(bad.status, 400)
+	t.is(bad.data.error.code, 'invalid-quote-index')
+
+	registry.unregister(reg.id)
+})
+
+test.serial('shifted comments report the lines the text sits on now', async t => {
+	const movePath = path.join(fixtureDir, 'move.md')
+	fs.writeFileSync(movePath, '# T\n\nfirst\n\ntarget line\n')
+	const {reg} = registry.register(movePath)
+
+	const posted = await api('POST', `/files/${reg.id}/comments`, {
+		line: 5, body: 'watch target', author: 'reviewer'
+	})
+	t.is(posted.data.lineStart, 5)
+
+	const reply = await api('POST', `/files/${reg.id}/comments`, {
+		parentId: posted.data.id, body: 'ack', author: 'claude'
+	})
+	t.is(reply.status, 201)
+
+	const firstThread = async () => {
+		const list = await api('GET', `/files/${reg.id}/comments`)
+		return list.data.threads[0]
+	}
+
+	// Two lines inserted above: the comment follows its text down to line 7
+	fs.writeFileSync(movePath, '# T\n\nfirst\n\nBRAND NEW\n\ntarget line\n')
+	let thread = await firstThread()
+	t.is(thread.lineStart, 7)
+	t.is(thread.lineEnd, 7)
+	t.false(thread.changed)
+	t.is(thread.currentText, 'target line')
+	// The snapshot still records where it was written
+	t.is(thread.snapshot.lineStart, 5)
+	// Replies follow the root
+	t.is(thread.replies[0].lineStart, 7)
+
+	// Lines removed above: it follows back up
+	fs.writeFileSync(movePath, '# T\n\ntarget line\n')
+	thread = await firstThread()
+	t.is(thread.lineStart, 3)
+	t.false(thread.changed)
+
+	// The text itself edited: no re-anchor, and changed flips
+	fs.writeFileSync(movePath, '# T\n\ntarget line EDITED\n')
+	thread = await firstThread()
+	t.is(thread.lineStart, 5)
+	t.true(thread.changed)
+
+	registry.unregister(reg.id)
+})
+
+test.serial('re-anchoring picks the copy nearest to where the comment was written', async t => {
+	const twinPath = path.join(fixtureDir, 'twins.md')
+	// The same line appears twice; the comment is about the second one
+	fs.writeFileSync(twinPath,
+		['# T', '', '- [ ] check', '', 'filler', '', '- [ ] check', ''].join('\n'))
+	const {reg} = registry.register(twinPath)
+
+	const posted = await api('POST', `/files/${reg.id}/comments`, {
+		line: 7, body: 'the second one', author: 'reviewer'
+	})
+	t.is(posted.data.snapshot.text, '- [ ] check')
+	t.is(posted.data.snapshot.lineStart, 7)
+
+	// One line inserted above both copies: they move to 4 and 8. Measured from
+	// the original line 7, the copy at 8 is nearer than the one at 4.
+	fs.writeFileSync(twinPath,
+		['# T', 'INSERTED', '', '- [ ] check', '', 'filler', '', '- [ ] check', ''].join('\n'))
+	const list = await api('GET', `/files/${reg.id}/comments`)
+	const [thread] = list.data.threads
+	t.is(thread.lineStart, 8)
+	t.false(thread.changed)
+
+	registry.unregister(reg.id)
+})
+
 test.serial('a selection quote round-trips through the API', async t => {
 	const quoted = await api('POST', `/files/${fileId}/comments`, {
 		line: 3, quote: 'line three', body: 'About this phrase', author: 'reviewer'

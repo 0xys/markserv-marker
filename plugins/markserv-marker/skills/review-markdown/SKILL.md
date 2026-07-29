@@ -14,7 +14,7 @@ Resolve markdown review comments
 
 1. Identify the target file: from the argument or context. A localhost URL like `http://localhost:7642/f/<id>/<name>` carries the file id directly — extract the `<id>` path segment and use it as-is. If still unknown, list the candidates with `GET http://localhost:7642/api/files` (each entry has `id`, `path`, and `comments: {total, unresolved}`) and pick the obvious one, or ask the user.
 2. Fetch the work:
-   - `GET /api/files/<id>/comments?resolved=false` — unresolved threads. Each thread has `lineStart`/`lineEnd` (1-based source lines), `quote` (the text the human selected), `body`, `author`, `replies`, and staleness info: `snapshot` (the lines as they were when the comment was written), `currentText` and `changed`.
+   - `GET /api/files/<id>/comments?resolved=false` — unresolved threads. Each thread has `lineStart`/`lineEnd` (1-based source lines), `quote` (the text the human selected), `body`, `author`, `replies`, and staleness info: `snapshot` (the lines as they were when the comment was written), `currentText` and `changed`. `lineStart`/`lineEnd` are where the commented text sits **now**: edits elsewhere in the file shift it, and the daemon re-anchors on every read. `snapshot.lineStart` is where it was written, so the two differ once the file has moved underneath.
    - `GET /api/files/<id>/content` — the current markdown source, for mapping line numbers to text.
 3. Treat every thread as one review task. When there are several threads, track them as individual tasks so none is dropped. For each thread:
    - Understand what is being asked from `body`, `quote` and the anchored lines. If `changed` is `true`, the text has been edited since the comment was written — compare `snapshot.text` with `currentText` before acting; the feedback may already be outdated.
@@ -45,7 +45,7 @@ Base URL `http://localhost:7642`. All bodies are JSON.
 | `DELETE /api/files/:id` | Unregister (drops its comments) |
 | `GET /api/files/:id/content` | `{path, lines, content}` — raw markdown source for line mapping |
 | `GET /api/files/:id/comments` | Threads; filters: `?resolved=true\|false`, `?since=<ISO 8601>` |
-| `POST /api/files/:id/comments` | Root: `{line}` or `{lineStart, lineEnd}` + `{body, author}`, optional `{quote}`. Reply: `{parentId, body, author}` |
+| `POST /api/files/:id/comments` | Root: `{line}` or `{lineStart, lineEnd}` + `{body, author}`, optional `{quote, quoteIndex}`. Reply: `{parentId, body, author}` |
 | `DELETE /api/files/:id/comments` | Bulk-delete comments; `?resolved=true` clears only resolved threads |
 | `PATCH /api/comments/:id` | `{resolved: true\|false}` and/or `{body}` — resolve works on thread roots only |
 | `DELETE /api/comments/:id` | Delete a comment (a root takes its replies with it) |
@@ -56,10 +56,11 @@ Comment object shape (threads returned by `GET .../comments` are roots with a `r
 ```json
 {
   "id": "<fileId>-c1",              // globally unique; threads are one level deep
-  "lineStart": 12, "lineEnd": 14,   // 1-based source lines, inclusive
+  "lineStart": 12, "lineEnd": 14,   // 1-based inclusive; where the text sits now
   "quote": "selected text",         // what the human selected (null if none)
+  "quoteIndex": 0,                  // 0-based: which occurrence of the quote in the block
   "snapshot": {"lineStart": 12, "lineEnd": 14, "text": "..."},  // the lines at comment time
-  "currentText": "...",             // those line numbers now
+  "currentText": "...",             // the text at lineStart..lineEnd
   "changed": false,                 // true when the commented lines were edited since
   "parentId": null,                 // set on replies
   "author": "reviewer", "body": "...", "createdAt": "<ISO>", "resolved": false
