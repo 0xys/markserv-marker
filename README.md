@@ -12,6 +12,7 @@ Built for the workflow where an AI agent (Claude Code etc.) serves a Markdown fi
 - **Index page.** `/` lists everything currently served, with comment counts.
 - **Review comments.** Select any text in the rendered page and a floating Comment button appears; the comment records the enclosing source-line range plus the selected text (`quote`), which stays highlighted in the page. Comments support threads and resolve/unresolve. They live in memory for the daemon's lifetime — no files written.
 - **Comments API.** Everything the UI does is available over HTTP for agents.
+- **Mermaid diagrams you can comment on.** A ```mermaid fence renders as a diagram, and a button on the block switches it to its mermaid source. Comments are made on the source, so a review can point at the line that draws the wrong arrow; the button carries a badge when the block has unresolved comments.
 
 Everything else is markserv: GitHub-style rendering, themes, syntax highlighting, live reload while you edit.
 
@@ -140,6 +141,7 @@ Bundled third-party assets:
 - File icons from [Material Icon Theme](https://github.com/PKief/vscode-material-icon-theme) by Philipp Kief (MIT)
 - Theme styles derived from [github-markdown-css](https://github.com/sindresorhus/github-markdown-css) by Sindre Sorhus (MIT)
 - Syntax-highlighting styles from [highlight.js](https://github.com/highlightjs/highlight.js) (BSD-3-Clause)
+- Diagram rendering by [mermaid](https://github.com/mermaid-js/mermaid) (MIT), vendored in `lib/vendor` — see [lib/vendor/README.md](lib/vendor/README.md)
 
 ## License
 

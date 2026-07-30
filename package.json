@@ -40,7 +40,8 @@
     "semicolon": false,
     "space": false,
     "ignores": [
-      "lib/templates/**"
+      "lib/templates/**",
+      "lib/vendor/**"
     ],
     "rules": {
       "unicorn/prefer-module": "off",

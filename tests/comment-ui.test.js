@@ -614,3 +614,133 @@ test('hot reload rebuilds widgets after content swap', async t => {
 	t.truthy(document.querySelector('.marker-thread'))
 	t.truthy(document.querySelector('mark.marker-quote'))
 })
+
+/* ---------- mermaid blocks ---------- */
+
+// lib/mermaid.js wraps a mermaid fence so the browser can put a diagram beside
+// its source. Comments are made on the source, which must behave like any
+// other fence, and the widgets must not end up inside that wrapper.
+const MERMAID_MARKDOWN = `# Title
+
+\`\`\`mermaid
+graph TD;
+  Draft-->Review;
+\`\`\`
+
+Closing paragraph.
+`
+
+const mermaidThread = (id, line, quote) => ({
+	id,
+	fileId: 'abc123',
+	lineStart: line,
+	lineEnd: line,
+	quote,
+	parentId: null,
+	author: 'reviewer',
+	body: 'On ' + (quote || 'L' + line),
+	createdAt: '2026-07-21T00:00:00.000Z',
+	resolved: false,
+	replies: []
+})
+
+test('a thread on a mermaid block sits after the whole block, not inside it', async t => {
+	const {document} = await buildPage(
+		[mermaidThread('abc123-c1', 4, 'Draft-->Review')], MERMAID_MARKDOWN)
+
+	const wrapper = document.querySelector('.marker-mermaid')
+	const widget = document.querySelector('.marker-thread')
+	t.truthy(widget)
+	// Inside the wrapper the widget would be buried among the diagram controls
+	t.is(widget.parentElement.id, 'marker-content')
+	t.is(wrapper.nextElementSibling, widget)
+
+	// The quote is highlighted in the source, where it can be read and clicked
+	const mark = document.querySelector('mark.marker-quote')
+	t.truthy(mark)
+	t.truthy(mark.closest('pre.marker-mermaid-source code.language-mermaid'))
+})
+
+test('several threads on one mermaid block stay in line order after it', async t => {
+	const {document} = await buildPage(
+		[mermaidThread('abc123-c1', 3), mermaidThread('abc123-c2', 4)], MERMAID_MARKDOWN)
+
+	const widgets = [...document.querySelectorAll('.marker-thread')]
+	t.deepEqual(widgets.map(w => w.dataset.threadId), ['abc123-c1', 'abc123-c2'])
+	const wrapper = document.querySelector('.marker-mermaid')
+	t.is(wrapper.nextElementSibling, widgets[0])
+	t.is(widgets[0].nextElementSibling, widgets[1])
+})
+
+test('selecting mermaid source posts the fence line range', async t => {
+	const {window, document, calls} = await buildPage([], MERMAID_MARKDOWN)
+
+	const code = document.querySelector('pre.marker-mermaid-source code')
+	const textNode = code.firstChild
+	const offset = textNode.nodeValue.indexOf('Draft')
+	const range = document.createRange()
+	range.setStart(textNode, offset)
+	range.setEnd(textNode, offset + 'Draft-->Review'.length)
+	const selection = window.getSelection()
+	selection.removeAllRanges()
+	selection.addRange(range)
+
+	document.dispatchEvent(new window.Event('mouseup', {bubbles: true}))
+	await tick(10)
+	document.querySelector('.marker-select-btn')
+		.dispatchEvent(new window.Event('mousedown', {bubbles: true, cancelable: true}))
+	await tick(10)
+
+	const form = document.querySelector('.marker-form')
+	t.truthy(form)
+	form.querySelector('textarea').value = 'Reverse this arrow'
+	form.querySelector('textarea').dispatchEvent(new window.Event('input', {bubbles: true}))
+	form.querySelector('.marker-btn-primary')
+		.dispatchEvent(new window.MouseEvent('click', {bubbles: true}))
+	await tick(20)
+
+	const post = calls.find(call => call.method === 'POST')
+	t.truthy(post)
+	t.is(post.body.lineStart, 3)
+	t.is(post.body.lineEnd, 6)
+	t.is(post.body.quote, 'Draft-->Review')
+})
+
+test('text inside a rendered diagram is kept out of quote matching', async t => {
+	const {window, document} = await buildPage(
+		[mermaidThread('abc123-c1', 4, 'Review')], MERMAID_MARKDOWN)
+
+	// What lib/templates/mermaid.js adds: a diagram whose labels repeat the
+	// words of the source. Unmarked it would shift occurrence counting for the
+	// whole document, so mermaid.js marks it as UI.
+	const diagram = document.createElement('div')
+	diagram.className = 'marker-mermaid-diagram'
+	diagram.dataset.markerUi = ''
+	diagram.innerHTML = '<svg><text>Draft</text><text>Review</text></svg>'
+	document.querySelector('.marker-mermaid').append(diagram)
+
+	document.dispatchEvent(new window.CustomEvent('marker:comments'))
+	await tick(20)
+
+	const marks = [...document.querySelectorAll('mark.marker-quote')]
+	t.is(marks.length, 1)
+	t.truthy(marks[0].closest('pre.marker-mermaid-source'))
+})
+
+test('marker:rendered fires once widgets and highlights are in place', async t => {
+	const {window, document} = await buildPage(
+		[mermaidThread('abc123-c1', 4, 'Review')], MERMAID_MARKDOWN)
+
+	const seen = []
+	document.addEventListener('marker:rendered', () => {
+		seen.push({
+			widgets: document.querySelectorAll('.marker-thread').length,
+			marks: document.querySelectorAll('mark.marker-quote').length
+		})
+	})
+
+	document.dispatchEvent(new window.CustomEvent('marker:comments'))
+	await tick(20)
+
+	t.deepEqual(seen, [{widgets: 1, marks: 1}])
+})

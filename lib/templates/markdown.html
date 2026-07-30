@@ -14,6 +14,7 @@
 	<link rel="stylesheet" href="{markserv}templates/highlight-js-github-gist.css">
 	<link rel="stylesheet" href="{markserv}templates/comments.css">
 	<link rel="stylesheet" href="{markserv}templates/toc.css">
+	<link rel="stylesheet" href="{markserv}templates/mermaid.css">
 	<script type="text/javascript" id="MathJax-script" async
 	      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
         </script>
@@ -46,6 +47,8 @@
 		var btn = document.getElementById('theme-toggle');
 		if (btn) btn.textContent = icons[t] || icons.dark;
 		current = t;
+		// Mermaid diagrams carry their colours in the SVG and have to be redrawn
+		document.dispatchEvent(new CustomEvent('marker:theme', {detail: {theme: t}}));
 	}
 
 	applyTheme(current);
@@ -124,6 +127,7 @@
 </script>
 {{/if}}
 <script src="{markserv}templates/toc.js" defer></script>
+<script src="{markserv}templates/mermaid.js" defer></script>
 {{#if fileId}}
 <script>
 window.__marker = {

@@ -60,6 +60,15 @@ test('fenced code blocks keep line anchors despite highlightjs', async t => {
 	t.true(html.includes('hljs'))
 })
 
+// Its own document rather than an addition to `fixture`, whose line numbers
+// every assertion above hardcodes
+test('mermaid fences keep the same line anchors as any other fence', async t => {
+	const html = await markdownToHTML('```mermaid\ngraph TD;\n```\n')
+	const anchored = attrs(html)
+	t.deepEqual(anchored.filter(a => a.tag === 'pre')[0], {tag: 'pre', start: 1, end: 3})
+	t.deepEqual(anchored.filter(a => a.tag === 'code')[0], {tag: 'code', start: 1, end: 3})
+})
+
 test('frontmatter renders as a details block without shifting line anchors', async t => {
 	const withFrontmatter = `---
 name: test
