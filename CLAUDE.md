@@ -48,6 +48,7 @@ markserv-marker is a fork of markserv v1.18.0 (first commit is the pristine impo
 ## Workflow rules (important)
 
 - Do **not** commit, push, or update the installed Claude Code plugin on your own. Make the changes, report, and wait for the user to ask.
+- Work happens on a branch, never directly on `main`. Branch off `main` and name it after the version the work belongs to, `vX.Y.Z-dev`. `main` receives the work by merge, and only a release commit is expected to land on it directly.
 - A release ships **code, skills and plugin together** and may span any number of commits. The invariant is the end state, not the commit shape: when the release is cut, `package.json` version == `plugins/markserv-marker/.claude-plugin/plugin.json` version == the `vX.Y.Z` git tag, and the tag points at a commit where both files agree. Never leave one of the three bumped alone.
 - Cutting a release means: bump both version files, tag `vX.Y.Z`, push with tags, create the GitHub Release for the tag (`gh release create vX.Y.Z`), and update the installed plugin.
 - Releases happen only when the user asks. When release-worthy changes have accumulated, ask the user instead of releasing automatically.
