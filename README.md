@@ -105,7 +105,7 @@ All request/response bodies are JSON.
 | `DELETE /api/files/:id` | Unregister (drops its comments) |
 | `GET /api/files/:id/content` | `{path, lines, content}` — raw markdown for line mapping |
 | `GET /api/files/:id/comments` | Threads; filters: `?resolved=false`, `?since=<ISO>` |
-| `POST /api/files/:id/comments` | Root: `{line}` or `{lineStart, lineEnd}` + `{body, author}`, optional `{quote}` (the selected text). Reply: `{parentId, body, author}` |
+| `POST /api/files/:id/comments` | Root: `{line}` or `{lineStart, lineEnd}` + `{body, author}`, optional `{quote}` (the selected text) and `{quoteIndex}` (which occurrence of it, 0-based). Reply: `{parentId, body, author}` |
 | `DELETE /api/files/:id/comments` | Bulk-delete comments; `?resolved=true` clears only resolved threads |
 | `PATCH /api/comments/:id` | `{resolved: true\|false}` and/or `{body}` (resolve works on thread roots only) |
 | `DELETE /api/comments/:id` | Delete (a root takes its replies with it) |
@@ -113,7 +113,9 @@ All request/response bodies are JSON.
 
 Comment ids look like `<fileId>-c1`. Line numbers are 1-based and refer to the Markdown source; rendered blocks carry them as `data-source-line` / `data-source-line-end` attributes.
 
-When a root comment is created the server snapshots the commented lines. Each thread returned by `GET .../comments` carries `snapshot` (`{lineStart, lineEnd, text}` at comment time), `currentText` (those line numbers now) and `changed` (boolean). The browser UI shows an "⚠ edited" badge and an inline diff when `changed` is true — agents can use the same fields to detect that a comment refers to stale text.
+When a root comment is created the server narrows the reported block range down to the lines the `quote` actually touches and snapshots exactly those lines. A block can contain the same short quote more than once, which is what `quoteIndex` disambiguates.
+
+Each thread returned by `GET .../comments` carries `snapshot` (`{lineStart, lineEnd, text}` as the lines were when the comment was written), `currentText` and `changed` (boolean). The thread's own `lineStart`/`lineEnd` are re-anchored on every read: edits elsewhere in the file move the commented text, so they report where that text sits **now**, while `snapshot.lineStart` keeps recording where it was written. `changed` is true only when the commented text itself was edited, not when it merely moved; the browser UI then shows an "⚠ edited" badge with an inline diff, and agents can use the same fields to detect that a comment refers to stale text.
 
 ## Security
 
