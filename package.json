@@ -17,7 +17,9 @@
   "main": "lib/server.js",
   "scripts": {
     "test": "ava",
-    "lint": "xo"
+    "lint": "xo",
+    "state:backup": "node scripts/marker-state.js backup",
+    "state:restore": "node scripts/marker-state.js restore"
   },
   "keywords": [
     "markdown",

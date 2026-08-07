@@ -14,9 +14,33 @@ node lib/cli.js <file.md>         # register a file (auto-starts the daemon), pr
 node lib/cli.js daemon            # run the daemon in the foreground (logs)
 node lib/cli.js status --json     # daemon health + registered files
 node lib/cli.js stop              # stop the daemon
+
+node scripts/marker-state.js backup  state.json   # registrations + comments to a file
+node scripts/marker-state.js restore state.json   # put them back into a fresh daemon
 ```
 
-Templates and browser assets (`lib/templates/*.html|js|css`) are read from disk per request — edits show up on browser reload without restarting the daemon. Changes to `lib/*.js` (server, registry, api…) require a daemon restart (`stop`, then re-register files; comments are in-memory and are lost on restart by design). `lib/vendor/*` is served with an ETag, so replacing a vendored bundle needs a hard reload.
+## Restarting the daemon without losing comments
+
+Comments live in the daemon's memory only, so any restart discards them —
+including the restart a change to `lib/*.js` requires. **Check
+`lib/cli.js status` for unresolved comments before stopping.** If there are
+any, carry the state across instead of asking the user to re-type it:
+
+```console
+node scripts/marker-state.js backup /tmp/marker-state.json
+node lib/cli.js stop
+node lib/cli.js <the oldest registered path> --no-browser --json   # restarts the daemon
+node scripts/marker-state.js restore /tmp/marker-state.json
+```
+
+`restore` re-registers oldest-first so the index ordering is unchanged, then
+recreates each thread, its replies and its resolved state, and finally reads
+the daemon back and diffs it against the backup. It exits non-zero and leaves
+the backup in place if anything failed to come back. Registration ids are
+`sha1(realpath)` so URLs survive; `createdAt` and the per-file comment ids do
+not, because the API assigns those on create.
+
+Templates and browser assets (`lib/templates/*.html|js|css`) are read from disk per request — edits show up on browser reload without restarting the daemon. Changes to `lib/*.js` (server, registry, api…) require a daemon restart (`stop`, then re-register files). Comments are in-memory and a restart discards them by design — see "Restarting the daemon without losing comments" above before stopping a daemon someone is reviewing on. `lib/vendor/*` is served with an ETag, so replacing a vendored bundle needs a hard reload.
 
 ## Architecture
 
