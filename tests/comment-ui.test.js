@@ -744,3 +744,99 @@ test('marker:rendered fires once widgets and highlights are in place', async t =
 
 	t.deepEqual(seen, [{widgets: 1, marks: 1}])
 })
+
+/* ---------- auto-linkified URLs ---------- */
+
+// Bare URLs are linkified now, which splits a paragraph's single text node
+// into text / <a>text</a> / text. Quote matching concatenates node values, so
+// the anchoring must be unaffected — and a highlight can end up inside the
+// anchor, where the click belongs to the thread and not to the link.
+const URL_MARKDOWN = `# Title
+
+詳細は https://example.com/docs を見てください。
+
+Another paragraph entirely.
+`
+
+test('a comment anchors normally around an auto-linkified URL', async t => {
+	const {document} = await buildPage([{
+		id: 'abc123-c1',
+		fileId: 'abc123',
+		lineStart: 3,
+		lineEnd: 3,
+		quote: '詳細は',
+		parentId: null,
+		author: 'reviewer',
+		body: 'ここを直して',
+		createdAt: '2026-07-21T00:00:00.000Z',
+		resolved: false,
+		replies: []
+	}], URL_MARKDOWN)
+
+	// The paragraph really did get a link
+	const paragraph = document.querySelector('p[data-source-line="3"]')
+	t.truthy(paragraph.querySelector('a[href="https://example.com/docs"]'))
+
+	const marks = [...document.querySelectorAll('mark.marker-quote')]
+	t.is(marks.length, 1)
+	t.is(marks[0].textContent, '詳細は')
+	t.truthy(document.querySelector('.marker-thread[data-thread-id="abc123-c1"]'))
+
+	// The link text is still part of the paragraph's text, unsplit
+	t.is(paragraph.textContent, '詳細は https://example.com/docs を見てください。')
+})
+
+test('clicking a highlight inside a link opens the thread instead of navigating', async t => {
+	const {window, document} = await buildPage([{
+		id: 'abc123-c1',
+		fileId: 'abc123',
+		lineStart: 3,
+		lineEnd: 3,
+		quote: 'https://example.com/docs',
+		parentId: null,
+		author: 'reviewer',
+		body: 'このURLは古い',
+		createdAt: '2026-07-21T00:00:00.000Z',
+		resolved: false,
+		replies: []
+	}], URL_MARKDOWN)
+
+	const mark = document.querySelector('mark.marker-quote')
+	t.truthy(mark)
+	// The highlight landed inside the anchor, which is what makes the guard needed
+	t.truthy(mark.closest('a'))
+
+	const widget = document.querySelector('.marker-thread[data-thread-id="abc123-c1"]')
+	widget.classList.add('collapsed')
+
+	const event = new window.MouseEvent('click', {bubbles: true, cancelable: true})
+	mark.dispatchEvent(event)
+	await tick(10)
+
+	// Cancelled, so the browser would not follow the href
+	t.true(event.defaultPrevented)
+	t.false(widget.classList.contains('collapsed'))
+})
+
+test('a highlight outside any link still does not cancel the click', async t => {
+	const {window, document} = await buildPage([{
+		id: 'abc123-c1',
+		fileId: 'abc123',
+		lineStart: 5,
+		lineEnd: 5,
+		quote: 'Another paragraph',
+		parentId: null,
+		author: 'reviewer',
+		body: 'plain text quote',
+		createdAt: '2026-07-21T00:00:00.000Z',
+		resolved: false,
+		replies: []
+	}], URL_MARKDOWN)
+
+	const mark = document.querySelector('mark.marker-quote')
+	t.falsy(mark.closest('a'))
+	const event = new window.MouseEvent('click', {bubbles: true, cancelable: true})
+	mark.dispatchEvent(event)
+	await tick(10)
+	t.false(event.defaultPrevented)
+})
