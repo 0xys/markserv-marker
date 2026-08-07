@@ -9,10 +9,12 @@ Built for the workflow where an AI agent (Claude Code etc.) serves a Markdown fi
 ## Why fork markserv?
 
 - **No more port conflicts.** markserv starts one server per file, so every invocation has to hunt for a free port. markserv-marker runs a single daemon on a fixed port (default `7642`); the CLI just registers files with it and prints the URL.
-- **Index page.** `/` lists everything currently served, with comment counts.
+- **Index page.** `/` lists everything currently served, with comment counts and each document's own title beside its file name — a tree of `index.md` files is otherwise indistinguishable.
 - **Review comments.** Select any text in the rendered page and a floating Comment button appears; the comment records the enclosing source-line range plus the selected text (`quote`), which stays highlighted in the page. Comments support threads and resolve/unresolve. They live in memory for the daemon's lifetime — no files written.
 - **Comments API.** Everything the UI does is available over HTTP for agents.
 - **Mermaid diagrams you can comment on.** A ```mermaid fence renders as a diagram, and a button on the block switches it to its mermaid source. Comments are made on the source, so a review can point at the line that draws the wrong arrow; the button carries a badge when the block has unresolved comments.
+
+- **Bare URLs become links.** A URL pasted into the text does not need `[]()` around it. Only URLs carrying a scheme are linkified, so `README.md` stays a file name, and a link ends where Japanese punctuation begins rather than swallowing the `。` after it.
 
 Everything else is markserv: GitHub-style rendering, themes, syntax highlighting, live reload while you edit.
 

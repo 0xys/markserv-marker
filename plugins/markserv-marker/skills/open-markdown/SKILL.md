@@ -36,6 +36,7 @@ $ cd markserv-marker && npm install && npm link
 4. Report to the user:
    - the preview URL (and that the index of all served files is at `http://localhost:7642/`),
    - how to comment: select any text in the rendered page and press the floating Comment button; threads support replies and resolve,
+   - that a ```mermaid fence shows as a diagram, and the button on the block switches it to its mermaid source — comments are made on the source, so that is where to select text to comment on a diagram,
    - that they should invoke `/markserv-marker:review-markdown` when they are done commenting, so the feedback gets applied.
 
 # CLI reference
