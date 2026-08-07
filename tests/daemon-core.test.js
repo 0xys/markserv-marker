@@ -181,6 +181,70 @@ test.serial('index page lists registered files', async t => {
 	t.true(html.includes('markserv-marker'))
 })
 
+// A tree of index.md files is indistinguishable by name alone, so the index
+// shows each document's own title beside it
+test.serial('index rows show the markdown title next to the file name', async t => {
+	const titleDir = fs.mkdtempSync(path.join(os.tmpdir(), 'marker-titles-'))
+	const write = (name, body) => {
+		const filePath = path.join(titleDir, name)
+		fs.writeFileSync(filePath, body)
+		return registry.register(filePath).reg.id
+	}
+
+	const ids = [
+		write('heading.md', '# Deposit flow\n\nbody\n'),
+		// Frontmatter wins over a heading below it
+		write('front.md', '---\ntitle: "Staking rewards"\n---\n\n# Ignored heading\n'),
+		write('setext.md', 'Underlined title\n================\n\nbody\n'),
+		// Emphasis and links are stripped so the column stays readable
+		write('inline.md', '# The **bold** [linked](http://example.com) `code` doc\n'),
+		// A hash inside a fence is not a heading
+		write('fenced.md', '```sh\n# not a title\n```\n\n# Real title\n'),
+		write('none.md', 'Just a paragraph, no heading at all.\n')
+	]
+
+	const response = await fetch(`${base}/`)
+	const html = await response.text()
+
+	t.true(html.includes('<span class="marker-doc-title">Deposit flow</span>'))
+	t.true(html.includes('<span class="marker-doc-title">Staking rewards</span>'))
+	t.false(html.includes('Ignored heading'))
+	t.true(html.includes('<span class="marker-doc-title">Underlined title</span>'))
+	t.true(html.includes('<span class="marker-doc-title">The bold linked code doc</span>'))
+	t.true(html.includes('<span class="marker-doc-title">Real title</span>'))
+	t.false(html.includes('not a title'))
+
+	// A file with no heading still lists, just without the extra span
+	const rowOf = name => (html.match(/<tr>[\s\S]*?<\/tr>/g) || [])
+		.find(row => row.includes('>' + name + '</a>'))
+	t.truthy(rowOf('none.md'))
+	t.false(rowOf('none.md').includes('marker-doc-title'))
+	t.true(rowOf('heading.md').includes('marker-doc-title'))
+
+	// The file name is never replaced by the title
+	t.true(html.includes('>heading.md</a>'))
+
+	for (const id of ids) {
+		registry.unregister(id)
+	}
+})
+
+test.serial('a title is not read from a file that has gone away', async t => {
+	const gone = fs.mkdtempSync(path.join(os.tmpdir(), 'marker-gone-'))
+	const filePath = path.join(gone, 'vanishes.md')
+	fs.writeFileSync(filePath, '# Here for now\n')
+	const {reg} = registry.register(filePath)
+	fs.rmSync(filePath)
+
+	const response = await fetch(`${base}/`)
+	t.is(response.status, 200)
+	const html = await response.text()
+	t.true(html.includes('vanishes.md'))
+	t.false(html.includes('Here for now'))
+
+	registry.unregister(reg.id)
+})
+
 test.serial('unregistering removes the file', async t => {
 	const {reg} = registry.register(path.join(fixtureDir, 'doc.md'))
 	const response = await fetch(`${base}/api/files/${reg.id}`, {method: 'DELETE'})
