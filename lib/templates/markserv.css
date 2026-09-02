@@ -96,6 +96,98 @@ body .markdown-body {
   .page-controls {
     display: none !important;
   }
+  .marker-file-path {
+    display: none !important;
+  }
+}
+
+/* Strip above the page frame: the file's full path on the left, feature
+   toggles (md-comments.css) on the right. Both anchor to the article, so
+   they need it positioned; nothing inside the article positions against a
+   farther ancestor, so this is safe. The wider top margin is what gives the
+   strip its room above body's border. */
+body.marker-doc {
+  margin-top: 48px;
+}
+
+body .markdown-body {
+  position: relative;
+}
+
+/* The dimming lives on the child spans, not the container: an opacity on the
+   container would also wash out the tooltip pseudo-element. */
+.marker-file-path {
+  position: absolute;
+  top: -29px;
+  left: 0;
+  height: 22px;
+  max-width: calc(100% - 130px);
+  display: flex;
+  align-items: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--markserv-btn-color);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* The directory part yields to ellipsis; the file name always stays visible */
+.marker-file-path-dir {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.45;
+}
+
+.marker-file-path-base {
+  flex: none;
+  font-weight: 600;
+  opacity: 0.6;
+}
+
+.marker-file-path:hover .marker-file-path-dir {
+  opacity: 0.8;
+}
+
+.marker-file-path:hover .marker-file-path-base {
+  opacity: 0.95;
+}
+
+.marker-file-path.copied::after {
+  content: "✓ copied";
+  flex: none;
+  margin-left: 8px;
+  font-weight: 600;
+  color: #3fb950;
+}
+
+/* Tooltip with the full path. Below the bar, not above: the bar sits at the
+   very top of the document, where anything higher would be clipped. */
+.marker-file-path::before {
+  content: attr(data-path);
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 10000;
+  width: max-content;
+  max-width: min(90vw, 720px);
+  padding: 6px 10px;
+  border: 1px solid var(--markserv-btn-border);
+  border-radius: 6px;
+  background: var(--markserv-btn-bg);
+  color: var(--markserv-btn-color);
+  font-size: 11px;
+  font-weight: normal;
+  line-height: 1.5;
+  white-space: normal;
+  word-break: break-all;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease 0.15s;
+}
+
+.marker-file-path:hover::before {
+  opacity: 1;
 }
 
 /* Directory listing icons */

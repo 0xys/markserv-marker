@@ -19,8 +19,9 @@
 	      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
         </script>
 </head>
-<body>
+<body class="marker-doc">
 <article class="markdown-body">
+<div class="marker-file-path" id="marker-file-path" data-path="{{filePath}}"></div>
 <div id="marker-content">
 {{{content}}}
 </div>
@@ -79,6 +80,51 @@
 		var next = document.body.style.width !== '100%';
 		localStorage.setItem(KEY, next ? '1' : '0');
 		apply(next);
+	});
+})();
+</script>
+<script>
+(function() {
+	// File path in the strip above the page frame. A long path keeps its
+	// leading directories and the last two segments, collapsing the middle
+	// to an ellipsis segment; hovering shows the full path in a tooltip
+	// (CSS ::before over data-path) and a click copies it.
+	var el = document.getElementById('marker-file-path');
+	if (!el) return;
+	var full = el.getAttribute('data-path') || '';
+	if (!full) { el.remove(); return; }
+
+	var MAX = 64;
+	function shortened(path) {
+		if (path.length <= MAX) return path;
+		var parts = path.split('/');
+		var tail = parts.slice(-2).join('/'); // parent dir + file name
+		var kept = [];
+		for (var i = 0; i < parts.length - 2; i++) {
+			var candidate = kept.concat([parts[i]]).join('/') + '/…/' + tail;
+			if (candidate.length > MAX) break;
+			kept.push(parts[i]);
+		}
+		return kept.join('/') + '/…/' + tail;
+	}
+
+	var display = shortened(full);
+	var cut = display.lastIndexOf('/') + 1;
+	var dir = document.createElement('span');
+	dir.className = 'marker-file-path-dir';
+	dir.textContent = display.slice(0, cut);
+	var base = document.createElement('span');
+	base.className = 'marker-file-path-base';
+	base.textContent = display.slice(cut);
+	el.appendChild(dir);
+	el.appendChild(base);
+
+	el.addEventListener('click', function() {
+		if (!navigator.clipboard) return;
+		navigator.clipboard.writeText(full).then(function() {
+			el.classList.add('copied');
+			setTimeout(function() { el.classList.remove('copied'); }, 1200);
+		});
 	});
 })();
 </script>
