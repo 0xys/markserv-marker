@@ -117,3 +117,27 @@ test('list items carry their own line anchors', async t => {
 	t.true(items.some(a => a.start === 6 && a.end === 6))
 	t.true(items.some(a => a.start === 7 && a.end === 9))
 })
+
+test('HTML comments pass through the render verbatim', async t => {
+	// The browser receives real comment nodes; making them visible is done
+	// client-side by lib/templates/md-comments.js, never by the server
+	const html = await markdownToHTML(
+		'# Title\n\n<!-- block note -->\n\npara <!-- inline note --> tail\n')
+
+	t.true(html.includes('<!-- block note -->'))
+	t.true(html.includes('para <!-- inline note --> tail'))
+})
+
+test('a comment opener followed by a ==== ruler is not a setext heading', async t => {
+	// Markdown-it 10 ran setext headings before html_block, turning the
+	// opener into <h1><!--</h1>; the re-registered rule order in server.js
+	// gives the HTML block precedence, as CommonMark and markdown-it 11+ do
+	const html = await markdownToHTML(
+		'<!--\n====\nusage notes\n====\n-->\n\nafter the comment\n')
+
+	t.false(html.includes('<h1'))
+	t.true(html.includes('<!--\n====\nusage notes\n====\n-->'))
+	// The lines the comment occupies still count for what follows
+	const after = attrs(html).find(a => a.tag === 'p')
+	t.deepEqual(after, {tag: 'p', start: 7, end: 7})
+})

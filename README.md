@@ -16,6 +16,8 @@ Built for the workflow where an AI agent (Claude Code etc.) serves a Markdown fi
 
 - **Bare URLs become links.** A URL pasted into the text does not need `[]()` around it. Only URLs carrying a scheme are linkified, so `README.md` stays a file name, and a link ends where Japanese punctuation begins rather than swallowing the `。` after it.
 
+- **Markdown comments are subtly visible.** An HTML comment (`<!-- ... -->`) in the source shows up dimmed in place instead of disappearing, so author notes are not lost in review. A small toggle above the page frame — present only when the document has comments — hides them again, and the choice persists across sessions.
+
 Everything else is markserv: GitHub-style rendering, themes, syntax highlighting, live reload while you edit.
 
 ## Install

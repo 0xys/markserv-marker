@@ -840,3 +840,35 @@ test('a highlight outside any link still does not cancel the click', async t => 
 	await tick(10)
 	t.false(event.defaultPrevented)
 })
+
+/* ---------- markdown HTML comments ---------- */
+
+const MD_COMMENTS_JS = fs.readFileSync(
+	path.join(__dirname, '..', 'lib', 'templates', 'md-comments.js'), 'utf8')
+
+// "text" twice with an HTML comment between them whose note repeats the very
+// word being quoted. The visible note md-comments.js inserts is a real,
+// selectable text node marked data-marker-ui — unmarked, it would join the
+// quote corpus and quoteIndex 1 would land on the note instead.
+const COMMENTED = '# T\n\nkeep the text <!-- a text note --> and also drop the text here.\n'
+
+test('a decorated markdown comment does not shift quoteIndex counting', async t => {
+	const {window, document} = await buildPage([{
+		id: 'abc123-c1', fileId: 'abc123', lineStart: 3, lineEnd: 3,
+		quote: 'text', quoteIndex: 1, parentId: null, author: 'reviewer',
+		body: 'this one', createdAt: '2026-07-21T00:00:00.000Z', resolved: false, replies: []
+	}], COMMENTED)
+
+	window.eval(MD_COMMENTS_JS)
+	await tick(10)
+	t.is(document.querySelector('.marker-md-comment').textContent, ' a text note ')
+
+	document.dispatchEvent(new window.CustomEvent('marker:comments'))
+	await tick(20)
+
+	// Occurrence 1 over the corpus (which skips the note) is the last "text"
+	const mark = document.querySelector('mark.marker-quote')
+	t.truthy(mark)
+	t.falsy(mark.closest('.marker-md-comment'))
+	t.true(mark.nextSibling.nodeValue.startsWith(' here.'))
+})
