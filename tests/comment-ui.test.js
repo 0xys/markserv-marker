@@ -631,6 +631,42 @@ test('same-block comments render in ascending line order', async t => {
 	t.deepEqual(ids, ['abc123-c1', 'abc123-c2'])
 })
 
+// Selecting a table row hands over its cells tab-separated, and markdown-it
+// leaves a newline text node between the cells, so the quote matches across
+// them. Wrapping those newlines put a <mark> straight into the <tr>, where the
+// browser draws it as a cell of its own and the row grew columns.
+test('highlighting a table row does not give the row extra cells', async t => {
+	const markdown = 'intro\n\n| # | label | note |\n|---|---|---|\n' +
+		'| 3.1.1 | start | runs in the morning |\n| 3.1.2 | check | validates the input |\n'
+	const {document} = await buildPage([{
+		id: 'abc123-c1',
+		fileId: 'abc123',
+		lineStart: 5,
+		lineEnd: 5,
+		// What the browser posts for a row selection
+		quote: '3.1.1\tstart\truns in the morning',
+		parentId: null,
+		author: 'reviewer',
+		body: 'On this row',
+		createdAt: '2026-07-21T00:00:00.000Z',
+		resolved: false,
+		replies: []
+	}], markdown)
+
+	const rows = [...document.querySelectorAll('#marker-content table tr')]
+	t.deepEqual(rows.map(row => row.children.length), [3, 3, 3])
+	for (const row of rows) {
+		t.deepEqual([...row.children].filter(cell => !['TD', 'TH'].includes(cell.tagName)), [])
+	}
+
+	// The quote still highlights, one mark per cell it covers
+	const marks = [...document.querySelectorAll('mark.marker-quote')]
+	t.is(marks.length, 3)
+	t.deepEqual(marks.map(mark => mark.parentElement.tagName), ['TD', 'TD', 'TD'])
+	t.deepEqual(marks.map(mark => mark.textContent),
+		['3.1.1', 'start', 'runs in the morning'])
+})
+
 test('a repeated short quote highlights the occurrence in the commented lines', async t => {
 	// "word" appears on line 3 and again in a table header on line 7;
 	// the comment anchors to line 7, so the table occurrence must win
