@@ -368,6 +368,30 @@ a.page-btn {
   border-bottom: 2px solid var(--markserv-border);
 }
 
+/* A long table's header pins to the top of the window instead of scrolling
+   away. The class is set by table-head.js, and only on tables that report no
+   sideways scrolling to do: the theme's `overflow: auto` is what a sticky
+   header has to give up, and a table too wide for the column needs it more.
+   The bottom border is drawn again as a shadow because a collapsed border
+   belongs to the table, not the cell, and stops being painted once the cell
+   is lifted out of the flow. */
+.markdown-body table.marker-sticky-head {
+  overflow: visible;
+}
+
+.markdown-body table.marker-sticky-head thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  box-shadow: inset 0 -2px 0 var(--markserv-border);
+}
+
+@media print {
+  .markdown-body table.marker-sticky-head thead th {
+    position: static;
+  }
+}
+
 /* Tabs in code blocks render 4 columns wide (browser default is 8) */
 .markdown-body pre {
   tab-size: 4;
