@@ -379,29 +379,49 @@ a.page-btn {
   overflow: visible;
 }
 
-/* The other half: a table that has to keep its sideways scrolling scrolls
-   vertically inside its own box as well, and the header pins to the top of
-   that box. Only tables taller than most of the window get this. */
-.markdown-body table.marker-scroll-head {
-  max-height: 70vh;
-}
-
-.markdown-body table.marker-sticky-head thead th,
-.markdown-body table.marker-scroll-head thead th {
+.markdown-body table.marker-sticky-head thead th {
   position: sticky;
   top: 0;
   z-index: 2;
   box-shadow: inset 0 -2px 0 var(--markserv-border);
 }
 
+/* The other half: a table that keeps its sideways scrolling cannot hold a
+   header that sticks to the window, so table-head.js copies the header row
+   into this — fixed at the top, clipped to the table's visible width, and slid
+   sideways to follow the table's own scrolling. Inert: the header you can
+   select is the real one underneath. */
+.marker-sticky-shell {
+  position: fixed;
+  top: 0;
+  z-index: 3;
+  display: none;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.marker-sticky-shell .marker-sticky-clone {
+  position: relative;
+  display: table;
+  margin: 0;
+  max-width: none;
+  overflow: visible;
+  table-layout: fixed;
+}
+
+/* Widths are handed over as border-box measurements */
+.marker-sticky-shell .marker-sticky-clone th,
+.marker-sticky-shell .marker-sticky-clone td {
+  box-sizing: border-box;
+}
+
 @media print {
-  .markdown-body table.marker-sticky-head thead th,
-  .markdown-body table.marker-scroll-head thead th {
+  .markdown-body table.marker-sticky-head thead th {
     position: static;
   }
 
-  .markdown-body table.marker-scroll-head {
-    max-height: none;
+  .marker-sticky-shell {
+    display: none !important;
   }
 }
 

@@ -28,7 +28,9 @@ const buildPage = async ({markdown = MARKDOWN} = {}) => {
 		`<!DOCTYPE html><html data-theme="dark"><body>
 			<article class="markdown-body"><div id="marker-content">${contentHtml}</div></article>
 		</body></html>`,
-		{url: 'http://localhost:7642/f/abc123/test.md', runScripts: 'outside-only'})
+		// PretendToBeVisual, because the scroll sync runs in a
+		// requestAnimationFrame and jsdom has none without it
+		{url: 'http://localhost:7642/f/abc123/test.md', runScripts: 'outside-only', pretendToBeVisual: true})
 
 	const {window} = dom
 	window.eval(TABLE_HEAD_JS)
@@ -47,59 +49,116 @@ test('a table that fits gets the sticky header class', async t => {
 
 	const table = document.querySelector('#marker-content table')
 	t.true(table.classList.contains('marker-sticky-head'))
+	t.is(document.querySelectorAll('.marker-sticky-shell').length, 0)
 })
 
-// A table that has to keep its sideways scrolling gets the other treatment:
-// its own scroll box, with the header pinned to the top of that. Worth it only
-// for a table taller than most of the window; a short one fits on screen.
-const isTall = (table, tall) => {
+// A table that keeps its sideways scrolling cannot hold a header that sticks
+// to the window, so its header row is copied into a fixed shell that follows
+// the table's own scrolling.
+const straddlesTop = (table, rect) => {
 	Object.defineProperty(table, 'getBoundingClientRect', {
-		value: () => ({
-			top: 0, left: 0, right: 400, bottom: tall ? 2000 : 100, width: 400, height: tall ? 2000 : 100
-		}),
+		value: () => rect,
 		configurable: true
 	})
 }
 
-test('a wide, tall table scrolls inside itself instead', async t => {
+test('a table that must scroll sideways gets a fixed copy of its header', async t => {
 	const {window, document} = await buildPage()
 
 	const table = document.querySelector('#marker-content table')
 	needsHorizontalScroll(table, true)
-	isTall(table, true)
 	window.dispatchEvent(new window.Event('resize'))
 	await tick(200)
+
 	t.false(table.classList.contains('marker-sticky-head'))
-	t.true(table.classList.contains('marker-scroll-head'))
+	const shell = document.querySelector('.marker-sticky-shell')
+	t.truthy(shell)
+	// Out of the content, so its text is nowhere near the quote corpus
+	t.is(shell.parentElement, document.body)
+	t.falsy(shell.closest('#marker-content'))
+	t.is(shell.dataset.markerUi, '')
+	// A copy of the header row, and only that
+	t.is(shell.querySelectorAll('thead').length, 1)
+	t.is(shell.querySelectorAll('tbody').length, 0)
+	t.is(shell.querySelectorAll('th').length, table.tHead.querySelectorAll('th').length)
 })
 
-test('a wide but short table is left alone entirely', async t => {
+test('the copy shows only while the table straddles the top edge', async t => {
 	const {window, document} = await buildPage()
 
 	const table = document.querySelector('#marker-content table')
 	needsHorizontalScroll(table, true)
-	isTall(table, false)
 	window.dispatchEvent(new window.Event('resize'))
 	await tick(200)
-	t.false(table.classList.contains('marker-sticky-head'))
-	t.false(table.classList.contains('marker-scroll-head'))
+	const shell = document.querySelector('.marker-sticky-shell')
+
+	// Below the fold: nothing to pin yet
+	straddlesTop(table, {
+		top: 300, bottom: 900, left: 40, right: 440, width: 400, height: 600
+	})
+	window.dispatchEvent(new window.Event('scroll'))
+	await tick(60)
+	t.is(shell.style.display, 'none')
+
+	// Scrolled into: pinned, aligned to the table's own left edge and width
+	straddlesTop(table, {
+		top: -200, bottom: 400, left: 40, right: 440, width: 400, height: 600
+	})
+	window.dispatchEvent(new window.Event('scroll'))
+	await tick(60)
+	t.is(shell.style.display, 'block')
+	t.is(shell.style.left, '40px')
+	t.is(shell.style.width, table.clientWidth + 'px')
+
+	// Scrolled past: gone again
+	straddlesTop(table, {
+		top: -900, bottom: -300, left: 40, right: 440, width: 400, height: 600
+	})
+	window.dispatchEvent(new window.Event('scroll'))
+	await tick(60)
+	t.is(shell.style.display, 'none')
 })
 
-test('a table wins the window-level header back when there is room again', async t => {
+test('the copy is slid sideways by the table\'s own scrolling', async t => {
 	const {window, document} = await buildPage()
 
 	const table = document.querySelector('#marker-content table')
 	needsHorizontalScroll(table, true)
-	isTall(table, true)
+	straddlesTop(table, {
+		top: -200, bottom: 400, left: 40, right: 440, width: 400, height: 600
+	})
 	window.dispatchEvent(new window.Event('resize'))
 	await tick(200)
-	t.true(table.classList.contains('marker-scroll-head'))
 
+	table.scrollLeft = 120
+	table.dispatchEvent(new window.Event('scroll', {bubbles: true}))
+	await tick(60)
+
+	const clone = document.querySelector('.marker-sticky-clone')
+	t.is(clone.style.left, '-120px')
+	t.is(clone.style.width, table.scrollWidth + 'px')
+})
+
+test('copies are rebuilt, not stacked up, on hot reload', async t => {
+	const {window, document} = await buildPage()
+
+	const table = document.querySelector('#marker-content table')
+	needsHorizontalScroll(table, true)
+	window.dispatchEvent(new window.Event('resize'))
+	await tick(200)
+	t.is(document.querySelectorAll('.marker-sticky-shell').length, 1)
+
+	// Still the same table, still too wide: one copy, not two
+	document.dispatchEvent(new window.CustomEvent('marker:reload'))
+	await tick(60)
+	t.is(document.querySelectorAll('.marker-sticky-shell').length, 1)
+
+	// And when there is room again the copy goes and CSS takes over
 	needsHorizontalScroll(table, false)
-	window.dispatchEvent(new window.Event('resize'))
-	await tick(200)
+	document.dispatchEvent(new window.CustomEvent('marker:reload'))
+	await tick(60)
+	t.is(document.querySelectorAll('.marker-sticky-shell').length, 0)
 	t.true(table.classList.contains('marker-sticky-head'))
-	t.false(table.classList.contains('marker-scroll-head'))
 })
 
 test('a table with no header row has nothing to stick', async t => {
