@@ -320,6 +320,77 @@ test('reply and resolve controls issue the right API calls', async t => {
 	t.deepEqual(patch.body, {resolved: true})
 })
 
+// Deleting is offered on each comment too, but only inside the body, which a
+// collapsed thread hides — and a thread one wants rid of is usually collapsed.
+test('a thread can be deleted from its head while collapsed', async t => {
+	const {window, document, calls} = await buildPage([{
+		id: 'abc123-c1',
+		fileId: 'abc123',
+		lineStart: 3,
+		lineEnd: 3,
+		quote: null,
+		parentId: null,
+		author: 'reviewer',
+		body: 'Root comment',
+		createdAt: '2026-07-21T00:00:00.000Z',
+		resolved: true,
+		replies: [{
+			id: 'abc123-c2',
+			fileId: 'abc123',
+			parentId: 'abc123-c1',
+			author: 'claude',
+			body: 'Done',
+			createdAt: '2026-07-21T01:00:00.000Z',
+			resolved: false
+		}]
+	}])
+
+	const widget = document.querySelector('.marker-thread')
+	// Resolved threads start collapsed, which is the state under test
+	t.true(widget.classList.contains('collapsed'))
+
+	const button = widget.querySelector('.marker-thread-delete')
+	t.truthy(button)
+	// In the head, so hiding the body does not hide it
+	t.is(button.parentElement.className, 'marker-thread-head')
+	t.falsy(button.closest('.marker-thread-body'))
+	// It says what goes with it
+	t.is(button.title, 'Delete this comment and its 1 reply')
+
+	button.dispatchEvent(new window.MouseEvent('click', {bubbles: true}))
+	await tick(20)
+
+	const removed = calls.find(call => call.method === 'DELETE')
+	t.truthy(removed)
+	t.true(removed.url.endsWith('/api/comments/abc123-c1'))
+	// The click must not reach the head underneath and expand the thread
+	t.true(document.querySelector('.marker-thread').classList.contains('collapsed'))
+})
+
+test('declining the confirmation deletes nothing', async t => {
+	const {window, document, calls} = await buildPage([{
+		id: 'abc123-c1',
+		fileId: 'abc123',
+		lineStart: 3,
+		lineEnd: 3,
+		quote: null,
+		parentId: null,
+		author: 'reviewer',
+		body: 'Root comment',
+		createdAt: '2026-07-21T00:00:00.000Z',
+		resolved: false,
+		replies: []
+	}])
+
+	window.confirm = () => false
+	const button = document.querySelector('.marker-thread-delete')
+	t.is(button.title, 'Delete this comment')
+	button.dispatchEvent(new window.MouseEvent('click', {bubbles: true}))
+	await tick(20)
+
+	t.falsy(calls.find(call => call.method === 'DELETE'))
+})
+
 test('the widget sits by the re-anchored line, not where it was written', async t => {
 	// Two paragraphs were inserted above the commented one, so the API reports
 	// line 7 while the comment was originally written against line 5

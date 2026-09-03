@@ -256,6 +256,23 @@ mark.marker-quote.resolved {
 	opacity: 1;
 }
 
+/* It sits on every thread head, resolved or not, so it stays quiet until
+   pointed at: the neighbouring Resolve is the button meant to catch the eye */
+.marker-thread-delete {
+	padding: 1px 6px;
+	opacity: 0.45;
+}
+
+.marker-thread-head:hover .marker-thread-delete {
+	opacity: 0.8;
+}
+
+.marker-thread-delete:hover {
+	background: rgba(248, 81, 73, 0.35);
+	border-color: rgba(248, 81, 73, 0.5);
+	opacity: 1;
+}
+
 .marker-body {
 	white-space: pre-wrap;
 	word-break: break-word;
