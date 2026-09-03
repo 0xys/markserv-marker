@@ -73,8 +73,9 @@ test('a table that must scroll sideways gets a fixed copy of its header', async 
 	t.false(table.classList.contains('marker-sticky-head'))
 	const shell = document.querySelector('.marker-sticky-shell')
 	t.truthy(shell)
-	// Out of the content, so its text is nowhere near the quote corpus
-	t.is(shell.parentElement, document.body)
+	// Out of the content, so its text is nowhere near the quote corpus, but
+	// inside the article, or none of the theme's table rules reach it
+	t.is(shell.parentElement, document.querySelector('article.markdown-body'))
 	t.falsy(shell.closest('#marker-content'))
 	t.is(shell.dataset.markerUi, '')
 	// A copy of the header row, and only that
