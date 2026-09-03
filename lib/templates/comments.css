@@ -15,7 +15,9 @@
 	display: none;
 	position: absolute;
 	z-index: 40;
-	padding: 4px 12px;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 6px 4px 12px;
 	border: none;
 	border-radius: 6px;
 	background: #2f81f7;
@@ -23,6 +25,18 @@
 	font-size: 13px;
 	cursor: pointer;
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+/* The lines this comment would land on. A translucent badge inside the
+   button, the way the mermaid and diff toggles carry their count. */
+.marker-select-lines {
+	padding: 0 6px;
+	border-radius: 8px;
+	background: rgba(255, 255, 255, 0.25);
+	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+	font-size: 11px;
+	line-height: 16px;
+	white-space: nowrap;
 }
 
 .marker-select-btn:hover {

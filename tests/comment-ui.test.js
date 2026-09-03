@@ -116,7 +116,10 @@ test('selecting text shows the comment button and posts with quote + lines', asy
 
 	const button = document.querySelector('.marker-select-btn')
 	t.truthy(button)
-	t.is(button.style.display, 'block')
+	t.is(button.style.display, 'inline-flex')
+	// The lines it would land on, badged inside the button
+	t.is(button.querySelector('.marker-select-lines').textContent, 'L3')
+	t.true(button.textContent.includes('Comment'))
 
 	// Click (mousedown) the button -> form appears with a quote preview
 	button.dispatchEvent(new window.Event('mousedown', {bubbles: true, cancelable: true}))
@@ -142,6 +145,25 @@ test('selecting text shows the comment button and posts with quote + lines', asy
 	t.is(post.body.quote, 'reviewable text')
 	t.is(post.body.body, 'Needs work')
 	t.is(post.body.author, 'tester')
+})
+
+test('a selection spanning blocks shows the whole range', async t => {
+	const {window, document} = await buildPage([])
+
+	const paragraphs = [...document.querySelectorAll('#marker-content p[data-source-line]')]
+	const range = document.createRange()
+	range.setStart(paragraphs[0].firstChild, 0)
+	range.setEnd(paragraphs[1].firstChild, 5)
+	const selection = window.getSelection()
+	selection.removeAllRanges()
+	selection.addRange(range)
+	document.dispatchEvent(new window.Event('mouseup', {bubbles: true}))
+	await tick(10)
+
+	const lines = document.querySelector('.marker-select-lines')
+	const from = paragraphs[0].dataset.sourceLine
+	const to = paragraphs[1].dataset.sourceLineEnd
+	t.is(lines.textContent, 'L' + from + '-' + to)
 })
 
 test('shift+enter posts the draft, plain enter and IME enter do not', async t => {
