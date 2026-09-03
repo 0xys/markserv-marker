@@ -653,7 +653,9 @@ test('highlighting a table row does not give the row extra cells', async t => {
 		replies: []
 	}], markdown)
 
+	// The widget rides in a row of its own, which is not a content row
 	const rows = [...document.querySelectorAll('#marker-content table tr')]
+		.filter(row => !row.classList.contains('marker-thread-row'))
 	t.deepEqual(rows.map(row => row.children.length), [3, 3, 3])
 	for (const row of rows) {
 		t.deepEqual([...row.children].filter(cell => !['TD', 'TH'].includes(cell.tagName)), [])
@@ -665,6 +667,95 @@ test('highlighting a table row does not give the row extra cells', async t => {
 	t.deepEqual(marks.map(mark => mark.parentElement.tagName), ['TD', 'TD', 'TD'])
 	t.deepEqual(marks.map(mark => mark.textContent),
 		['3.1.1', 'start', 'runs in the morning'])
+})
+
+// A row in the middle of a long table is a long way from the end of it, and a
+// widget shown down there loses its subject. A table row can hold the widget
+// itself, the way GitHub puts a review comment under the line it is about.
+const TABLE_MARKDOWN = 'intro\n\n| # | label | note |\n|---|---|---|\n' +
+	'| 3.1.1 | start | first row |\n| 3.1.2 | check | second row |\n| 3.1.3 | stop | third row |\n\nafter\n'
+
+const rowThread = (id, line, body) => ({
+	id,
+	fileId: 'abc123',
+	lineStart: line,
+	lineEnd: line,
+	quote: null,
+	parentId: null,
+	author: 'reviewer',
+	body,
+	createdAt: '2026-07-21T00:00:00.000Z',
+	resolved: false,
+	replies: []
+})
+
+test('a thread on a table row sits under that row, not after the table', async t => {
+	const {document} = await buildPage([rowThread('abc123-c1', 5, 'On the first row')], TABLE_MARKDOWN)
+
+	const widget = document.querySelector('.marker-thread')
+	const host = widget.closest('tr')
+	t.truthy(host)
+	t.true(host.classList.contains('marker-thread-row'))
+	t.is(host.dataset.markerUi, '')
+
+	// Directly under the row it is about, which is the second row of the table
+	const rows = [...document.querySelectorAll('#marker-content table tr')]
+	t.is(rows.indexOf(host), rows.indexOf(rows[1]) + 1)
+	t.true(rows[1].textContent.includes('first row'))
+
+	// One cell spanning the row's columns, and the content rows keep their own
+	const cell = host.children[0]
+	t.is(host.children.length, 1)
+	t.is(cell.getAttribute('colspan'), '3')
+	t.deepEqual(rows.filter(row => !row.classList.contains('marker-thread-row'))
+		.map(row => row.children.length), [3, 3, 3, 3])
+
+	// Collapsed, so it does not push the rows around it apart
+	t.true(widget.classList.contains('collapsed'))
+	t.is(widget.querySelector('.marker-chevron').textContent, '▸')
+})
+
+test('several threads on one row stay under it in line order', async t => {
+	const {document} = await buildPage([
+		rowThread('abc123-c1', 5, 'First'),
+		rowThread('abc123-c2', 6, 'Second')
+	], TABLE_MARKDOWN)
+
+	const rows = [...document.querySelectorAll('#marker-content table tr')]
+	t.deepEqual(rows.map(row => row.classList.contains('marker-thread-row') ?
+		'widget:' + row.querySelector('.marker-thread').dataset.threadId :
+		'row:' + row.children[0].textContent), [
+		'row:#',
+		'row:3.1.1',
+		'widget:abc123-c1',
+		'row:3.1.2',
+		'widget:abc123-c2',
+		'row:3.1.3'
+	])
+})
+
+test('a thread on a list item sits inside that item', async t => {
+	const markdown = 'intro\n\n- first item\n- second item\n- third item\n\nafter\n'
+	const {document} = await buildPage([rowThread('abc123-c1', 4, 'On the second')], markdown)
+
+	const widget = document.querySelector('.marker-thread')
+	const item = widget.closest('li')
+	t.truthy(item)
+	t.true(item.textContent.includes('second item'))
+	// Inside the item, so the list keeps its three markers
+	t.is(document.querySelectorAll('#marker-content ul > li').length, 3)
+	t.is(item.lastElementChild, widget)
+	t.true(widget.classList.contains('collapsed'))
+})
+
+test('a thread on a paragraph is unchanged: after it, and open', async t => {
+	const {document} = await buildPage([rowThread('abc123-c1', 3, 'On the paragraph')],
+		'# Title\n\nA paragraph to comment on.\n\nAnother one.\n')
+
+	const widget = document.querySelector('.marker-thread')
+	t.is(widget.parentElement.id, 'marker-content')
+	t.is(widget.previousElementSibling.tagName, 'P')
+	t.false(widget.classList.contains('collapsed'))
 })
 
 test('a repeated short quote highlights the occurrence in the commented lines', async t => {

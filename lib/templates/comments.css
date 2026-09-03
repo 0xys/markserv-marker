@@ -167,6 +167,27 @@ mark.marker-quote.resolved {
 	font-size: 14px;
 }
 
+/* A thread on a table row rides in a row of its own, and one on a list item
+   inside that item, so the comment stays with the line it is about. The theme
+   styles cells as `.markdown-body table td`, which outranks a lone class, so
+   the host cell has to say .markdown-body to strip the padding and borders a
+   data cell would get. */
+.markdown-body table tr.marker-thread-row,
+.markdown-body table td.marker-thread-cell {
+	padding: 0;
+	border: 0;
+	background: none;
+}
+
+/* Tighter than a thread standing on its own: it is nested in a row or an item
+   whose own spacing already separates it from what follows */
+.marker-thread-cell > .marker-thread,
+.marker-thread-cell > .marker-form,
+li > .marker-thread,
+li > .marker-form {
+	margin: 2px 0 6px;
+}
+
 .marker-thread.resolved {
 	border-left-color: #3fb950;
 	opacity: 0.85;
