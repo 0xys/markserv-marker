@@ -16,7 +16,7 @@ Built for the workflow where an AI agent (Claude Code etc.) serves a Markdown fi
 
 - **Diffs you can read side by side.** A ```diff fence, and a `.diff` or `.patch` file opened on its own, render as a GitHub-style two-column comparison with each side's line numbers and the changed words within a line picked out. A button on the block switches to the unified source, which is where comments are made. Long lines wrap inside their column rather than widening the block, so it stays within the page frame however narrow that is; the page's own width button is there when a comparison wants more room. A hand-written block with no `@@` header is compared too, without line numbers to invent.
 
-- **A long table keeps its header.** Scrolling down a tall table pins its header row to the top of the window, so the columns keep meaning something. A table wide enough to need sideways scrolling keeps that instead, since the two cannot both work on one element.
+- **A long table keeps its header.** Scrolling down a tall table pins its header row to the top of the window, so the columns keep meaning something. A table wide enough to need sideways scrolling cannot also pin to the window, so a tall one of those scrolls inside its own box with the header pinned there.
 
 - **Bare URLs become links.** A URL pasted into the text does not need `[]()` around it. Only URLs carrying a scheme are linkified, so `README.md` stays a file name, and a link ends where Japanese punctuation begins rather than swallowing the `。` after it.
 

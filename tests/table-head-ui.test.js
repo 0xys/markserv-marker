@@ -49,22 +49,57 @@ test('a table that fits gets the sticky header class', async t => {
 	t.true(table.classList.contains('marker-sticky-head'))
 })
 
-// The theme's overflow is what a sticky header has to give up, and a table too
-// wide for the column needs it more: it would spill out of the page instead.
-test('a table that must scroll sideways is left alone', async t => {
+// A table that has to keep its sideways scrolling gets the other treatment:
+// its own scroll box, with the header pinned to the top of that. Worth it only
+// for a table taller than most of the window; a short one fits on screen.
+const isTall = (table, tall) => {
+	Object.defineProperty(table, 'getBoundingClientRect', {
+		value: () => ({
+			top: 0, left: 0, right: 400, bottom: tall ? 2000 : 100, width: 400, height: tall ? 2000 : 100
+		}),
+		configurable: true
+	})
+}
+
+test('a wide, tall table scrolls inside itself instead', async t => {
 	const {window, document} = await buildPage()
 
 	const table = document.querySelector('#marker-content table')
 	needsHorizontalScroll(table, true)
+	isTall(table, true)
 	window.dispatchEvent(new window.Event('resize'))
 	await tick(200)
 	t.false(table.classList.contains('marker-sticky-head'))
+	t.true(table.classList.contains('marker-scroll-head'))
+})
 
-	// And gets it back when there is room again
+test('a wide but short table is left alone entirely', async t => {
+	const {window, document} = await buildPage()
+
+	const table = document.querySelector('#marker-content table')
+	needsHorizontalScroll(table, true)
+	isTall(table, false)
+	window.dispatchEvent(new window.Event('resize'))
+	await tick(200)
+	t.false(table.classList.contains('marker-sticky-head'))
+	t.false(table.classList.contains('marker-scroll-head'))
+})
+
+test('a table wins the window-level header back when there is room again', async t => {
+	const {window, document} = await buildPage()
+
+	const table = document.querySelector('#marker-content table')
+	needsHorizontalScroll(table, true)
+	isTall(table, true)
+	window.dispatchEvent(new window.Event('resize'))
+	await tick(200)
+	t.true(table.classList.contains('marker-scroll-head'))
+
 	needsHorizontalScroll(table, false)
 	window.dispatchEvent(new window.Event('resize'))
 	await tick(200)
 	t.true(table.classList.contains('marker-sticky-head'))
+	t.false(table.classList.contains('marker-scroll-head'))
 })
 
 test('a table with no header row has nothing to stick', async t => {
