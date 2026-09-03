@@ -141,3 +141,21 @@ test('a comment opener followed by a ==== ruler is not a setext heading', async 
 	const after = attrs(html).find(a => a.tag === 'p')
 	t.deepEqual(after, {tag: 'p', start: 7, end: 7})
 })
+
+test('a diff fence keeps the same line anchors as any other fence', async t => {
+	// Its own document: the shared fixture's line numbers are hardcoded above.
+	// The wrapper lib/diff-fence.js adds must not hide the pre from the
+	// injection this plugin does, which is why it wraps the output rather than
+	// replacing the renderer.
+	const html = await markdownToHTML(
+		'intro\n\n```diff\n-const b = 2\n+const b = 3\n```\n\nafter\n')
+	const anchored = attrs(html)
+
+	t.deepEqual(anchored.filter(a => a.tag === 'pre'), [{tag: 'pre', start: 3, end: 6}])
+	t.deepEqual(anchored.filter(a => a.tag === 'code'), [{tag: 'code', start: 3, end: 6}])
+	// Nothing on the wrapper: it would rival the pre as an anchor for the
+	// same lines, and comments.js picks the smallest enclosing range
+	t.notRegex(html, /<div[^>]*data-source-line/)
+	t.deepEqual(anchored.filter(a => a.tag === 'p'),
+		[{tag: 'p', start: 1, end: 1}, {tag: 'p', start: 8, end: 8}])
+})

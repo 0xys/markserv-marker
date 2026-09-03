@@ -16,6 +16,7 @@
 	<link rel="stylesheet" href="{markserv}templates/toc.css">
 	<link rel="stylesheet" href="{markserv}templates/mermaid.css">
 	<link rel="stylesheet" href="{markserv}templates/md-comments.css">
+	<link rel="stylesheet" href="{markserv}templates/diff-block.css">
 	<script type="text/javascript" id="MathJax-script" async
 	      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
         </script>
@@ -173,9 +174,13 @@
 })();
 </script>
 {{/if}}
+<!-- diff-core.js publishes the word diff both diff-block.js and comments.js
+     read; defer runs these in document order, so it goes first -->
+<script src="{markserv}templates/diff-core.js" defer></script>
 <script src="{markserv}templates/toc.js" defer></script>
 <script src="{markserv}templates/mermaid.js" defer></script>
 <script src="{markserv}templates/md-comments.js" defer></script>
+<script src="{markserv}templates/diff-block.js" defer></script>
 {{#if fileId}}
 <script>
 window.__marker = {

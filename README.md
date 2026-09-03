@@ -14,6 +14,8 @@ Built for the workflow where an AI agent (Claude Code etc.) serves a Markdown fi
 - **Comments API.** Everything the UI does is available over HTTP for agents.
 - **Mermaid diagrams you can comment on.** A ```mermaid fence renders as a diagram, and a button on the block switches it to its mermaid source. Comments are made on the source, so a review can point at the line that draws the wrong arrow; the button carries a badge when the block has unresolved comments.
 
+- **Diffs you can read side by side.** A ```diff fence, and a `.diff` or `.patch` file opened on its own, render as a GitHub-style two-column comparison with each side's line numbers and the changed words within a line picked out. A button on the block switches to the unified source, which is where comments are made; blocks wide enough to need the room spread past the page column. A hand-written block with no `@@` header is compared too, without line numbers to invent.
+
 - **Bare URLs become links.** A URL pasted into the text does not need `[]()` around it. Only URLs carrying a scheme are linkified, so `README.md` stays a file name, and a link ends where Japanese punctuation begins rather than swallowing the `。` after it.
 
 - **Markdown comments are subtly visible.** An HTML comment (`<!-- ... -->`) in the source shows up dimmed in place instead of disappearing, so author notes are not lost in review. A small toggle above the page frame — present only when the document has comments — hides them again, and the choice persists across sessions.

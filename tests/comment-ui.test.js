@@ -10,6 +10,10 @@ const {markdownToHTML} = require('../lib/server')
 const COMMENTS_JS = fs.readFileSync(
 	path.join(__dirname, '..', 'lib', 'templates', 'comments.js'), 'utf8')
 
+// The word diff comments.js reads off window.markerDiff lives here
+const DIFF_CORE_JS = fs.readFileSync(
+	path.join(__dirname, '..', 'lib', 'templates', 'diff-core.js'), 'utf8')
+
 const MARKDOWN = `# Title
 
 This paragraph has some reviewable text in it.
@@ -58,6 +62,7 @@ const buildPage = async (threads, markdown = MARKDOWN) => {
 		})
 	}
 
+	window.eval(DIFF_CORE_JS)
 	window.eval(COMMENTS_JS)
 	await tick(20) // Let the initial refresh() settle
 	return {window, document: window.document, calls}
@@ -419,6 +424,7 @@ test('the widget sits by the re-anchored line, not where it was written', async 
 			}]
 		})
 	})
+	window.eval(DIFF_CORE_JS)
 	window.eval(COMMENTS_JS)
 	await tick(20)
 
@@ -649,6 +655,7 @@ test('a repeated short quote highlights the occurrence in the commented lines', 
 			}]
 		})
 	})
+	window.eval(DIFF_CORE_JS)
 	window.eval(COMMENTS_JS)
 	await tick(20)
 
@@ -796,6 +803,56 @@ test('text inside a rendered diagram is kept out of quote matching', async t => 
 	const marks = [...document.querySelectorAll('mark.marker-quote')]
 	t.is(marks.length, 1)
 	t.truthy(marks[0].closest('pre.marker-mermaid-source'))
+})
+
+/* ---------- diff blocks ---------- */
+
+const DIFF_MARKDOWN = `# Title
+
+\`\`\`diff
+@@ -1,2 +1,2 @@
+-const b = 2
++const b = 3
+\`\`\`
+
+Closing paragraph.
+`
+
+test('a thread on a diff block sits after the whole block, not inside it', async t => {
+	const {document} = await buildPage(
+		[mermaidThread('abc123-c1', 5, 'const b = 2')], DIFF_MARKDOWN)
+
+	const wrapper = document.querySelector('.marker-diffblock')
+	const widget = document.querySelector('.marker-thread')
+	t.truthy(widget)
+	// The data-marker-wrapper on the block is what insertionPoint climbs out of
+	t.is(widget.parentElement.id, 'marker-content')
+	t.is(wrapper.nextElementSibling, widget)
+
+	// The quote is highlighted in the source, which is where comments are made
+	const mark = document.querySelector('mark.marker-quote')
+	t.truthy(mark.closest('.marker-diffblock pre'))
+})
+
+test('text in the side-by-side view is kept out of quote matching', async t => {
+	const {window, document} = await buildPage(
+		[mermaidThread('abc123-c1', 5, 'const b = 2')], DIFF_MARKDOWN)
+
+	// What lib/templates/diff-block.js adds: a table repeating every line of
+	// the block. Unmarked it would double each string in the corpus and shift
+	// occurrence counting for the whole document, so it is marked as UI.
+	const view = document.createElement('div')
+	view.className = 'marker-diffblock-view'
+	view.dataset.markerUi = ''
+	view.innerHTML = '<table><tr><td>const b = 2</td><td>const b = 3</td></tr></table>'
+	document.querySelector('.marker-diffblock').append(view)
+
+	document.dispatchEvent(new window.CustomEvent('marker:comments'))
+	await tick(20)
+
+	const marks = [...document.querySelectorAll('mark.marker-quote')]
+	t.is(marks.length, 1)
+	t.truthy(marks[0].closest('.marker-diffblock pre'))
 })
 
 test('marker:rendered fires once widgets and highlights are in place', async t => {

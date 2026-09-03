@@ -37,6 +37,7 @@ $ cd markserv-marker && npm install && npm link
    - the preview URL (and that the index of all served files is at `http://localhost:7642/`),
    - how to comment: select any text in the rendered page and press the floating Comment button; threads support replies and resolve,
    - that a ```mermaid fence shows as a diagram, and the button on the block switches it to its mermaid source — comments are made on the source, so that is where to select text to comment on a diagram,
+   - that a ```diff fence shows as a GitHub-style side-by-side comparison with the changed words picked out, and the button on the block switches it to the unified diff source — comments are made on the source, so that is where to select text to comment on a change,
    - that HTML comments (`<!-- ... -->`) in the markdown show as dim inline notes; the small toggle above the top-right corner of the page hides or shows them (their text can be selected and copied, but review comments cannot be left on it),
    - that they should invoke `/markserv-marker:review-markdown` when they are done commenting, so the feedback gets applied.
 
@@ -52,4 +53,4 @@ $ markserv-marker daemon             # run the daemon in the foreground (to see 
 
 Flags: `--port/-p` (default `7642`), `--address/-a` (default `localhost`), `--no-browser`, `--json`, `--theme dark|light|synthwave|solarized`, `--no-hotreload`, `--silent`, `--verbose`.
 
-Registration is idempotent (`id` = hash of the file's realpath). Registering a file serves its whole parent directory under `/f/<id>/`, so relative images and sibling links work. Comments live in daemon memory only — `stop` discards them.
+Registration is idempotent (`id` = hash of the file's realpath). Registering a file serves its whole parent directory under `/f/<id>/`, so relative images and sibling links work. A `.diff` or `.patch` file can be registered the same way and gets a page of its own, shown side by side and commentable line by line, which is worth using when the thing to review is a patch rather than prose. Comments live in daemon memory only — `stop` discards them.
