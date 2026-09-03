@@ -16,29 +16,6 @@
 	user-select: none;
 }
 
-/* Two columns of code do not fit in the 918px the body column leaves, so a
-   block whose lines need the room widens past it. is-wide is set by the
-   browser, which is the only side that can measure the lines. Only a direct
-   child of #marker-content: a block inside a list is centred on its indented
-   container and would lean to the right. max() makes the rule a no-op
-   wherever the column is already wider than the window allows, which is what
-   keeps the narrow breakpoints and the wide-page toggle from overflowing —
-   no media query needed for either. 96vw, never 100vw: vw counts the vertical
-   scrollbar, and the 4% is what absorbs it.
-
-   body's 1300px outline sounds as if it would cover a block that overflows
-   the page frame, since outlines paint last. Verified in Chrome: it does not,
-   the descendant paints over it. */
-#marker-content > .marker-diffblock.is-wide[data-mode="split"] {
-	width: max(100%, min(1500px, 96vw));
-	position: relative;
-	left: 50%;
-	transform: translateX(-50%);
-}
-
-/* Opaque on purpose: a widened block crosses the page frame, and body's own
-   border would otherwise show through the untinted context rows as a line
-   running down the middle of the comparison */
 .marker-diffblock-view {
 	overflow: hidden;
 	margin-bottom: 16px;
@@ -225,15 +202,7 @@
 	background: rgba(210, 153, 34, 0.45);
 }
 
-/* vw against a paged medium is unpredictable, and the source is what carries
-   the line numbers a printed review refers to */
 @media print {
-	#marker-content > .marker-diffblock.is-wide[data-mode="split"] {
-		width: auto;
-		left: auto;
-		transform: none;
-	}
-
 	.marker-diffblock-toggle {
 		display: none !important;
 	}

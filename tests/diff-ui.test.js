@@ -135,31 +135,8 @@ test('a block with no hunk header is still compared, without line numbers', asyn
 	t.is(wrapper.dataset.mode, 'split')
 	t.deepEqual(rowsOf(document), ['|const b = 2|||const b = 3'])
 
-	// Nothing to put in the gutters, and two short columns fit in the body
-	// column, so the block neither reserves gutter room nor widens
+	// Nothing to put in the gutters, so they do not reserve room either
 	t.true(document.querySelector('.marker-diffblock-table').classList.contains('no-numbers'))
-	t.false(wrapper.classList.contains('is-wide'))
-})
-
-// The room is taken only by blocks whose lines cannot be read without it: a
-// two-word diff spanning the whole window reads as a mistake
-test('a block earns the extra width only when its lines need it', async t => {
-	const long = 'x'.repeat(80)
-	const {document} = await buildPage({
-		markdown: fence(['@@ -1 +1 @@', '-' + long + 'a', '+' + long + 'b'])
-	})
-
-	t.true(document.querySelector('.marker-diffblock').classList.contains('is-wide'))
-})
-
-test('CJK counts double when deciding a block needs the width', async t => {
-	// 40 characters of Japanese take 80 monospace columns
-	const long = 'あ'.repeat(40)
-	const {document} = await buildPage({
-		markdown: fence(['@@ -1 +1 @@', '-' + long + 'x', '+' + long + 'y'])
-	})
-
-	t.true(document.querySelector('.marker-diffblock').classList.contains('is-wide'))
 })
 
 test('a hunk header with the counts omitted means one line each', async t => {
