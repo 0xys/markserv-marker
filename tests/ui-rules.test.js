@@ -28,7 +28,7 @@ test('the snapshot diff table is styled against the theme, not alone', t => {
 })
 
 test('block toggles cannot take the endpoint of a selection', t => {
-	for (const [file, className] of [['mermaid.css', 'marker-mermaid-toggle'], ['diff-block.css', 'marker-diffblock-toggle']]) {
+	for (const [file, className] of [['mermaid.css', 'marker-mermaid-toggle'], ['diff-block.css', 'marker-diffblock-toggle'], ['code-block.css', 'marker-codeblock-toggle']]) {
 		const css = read(file)
 		const block = css.match(new RegExp('\\.' + className + '\\s*\\{([^}]*)\\}'))
 		t.truthy(block, `${file} has no toggle rule`)
