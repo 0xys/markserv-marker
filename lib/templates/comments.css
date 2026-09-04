@@ -651,8 +651,3 @@ li > .marker-editor {
 	border-color: rgba(248, 81, 73, 0.5);
 }
 
-/* Undo and redo of applied edits, beside the page's other controls */
-.marker-history-btn:disabled {
-	opacity: 0.35;
-	cursor: default;
-}

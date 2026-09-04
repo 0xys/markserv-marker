@@ -473,43 +473,6 @@ test('a refusal keeps its wording when the disk view refreshes', async t => {
 	t.true(page.document.querySelector('.marker-editor-disk-head').textContent.includes('not applied'))
 })
 
-test('Undo and Redo appear once an edit has been applied, and reverse it', async t => {
-	const page = await buildPage()
-	t.falsy(page.document.querySelector('#marker-undo'))
-
-	await selectLine(page, 5)
-	await pressEdit(page)
-	const textarea = page.document.querySelector('.marker-editor textarea')
-	const before = textarea.value
-	textarea.value = before.replace('second paragraph', 'SECOND paragraph')
-	textarea.dispatchEvent(new page.window.Event('input', {bubbles: true}))
-	page.document.querySelector('.marker-editor .marker-btn-primary')
-		.dispatchEvent(new page.window.MouseEvent('click', {bubbles: true}))
-	await tick(30)
-
-	const undo = page.document.querySelector('#marker-undo')
-	const redo = page.document.querySelector('#marker-redo')
-	t.truthy(undo)
-	t.false(undo.disabled)
-	// Nothing to redo until something is undone
-	t.true(redo.disabled)
-
-	undo.dispatchEvent(new page.window.MouseEvent('click', {bubbles: true}))
-	await tick(30)
-
-	const undone = page.calls.filter(call => call.method === 'PATCH').at(-1)
-	// The write in reverse: what it applied becomes the base
-	t.true(undone.body.base.includes('SECOND paragraph'))
-	t.is(undone.body.text, before)
-	t.is(page.file.content, SOURCE)
-	t.false(page.document.querySelector('#marker-redo').disabled)
-
-	page.document.querySelector('#marker-redo')
-		.dispatchEvent(new page.window.MouseEvent('click', {bubbles: true}))
-	await tick(30)
-	t.true(page.file.content.includes('SECOND paragraph'))
-})
-
 /* ---------- the panel across a comments push and a reload ---------- */
 
 test('the editor survives a comments push with its focus and caret', async t => {

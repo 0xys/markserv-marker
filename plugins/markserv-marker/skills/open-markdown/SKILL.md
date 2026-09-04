@@ -37,7 +37,7 @@ $ cd markserv-marker && npm install && npm link
    - the preview URL (and that the index of all served files is at `http://localhost:7642/`),
    - how to comment: select any text in the rendered page and press the floating Comment button; threads support replies and resolve,
    - that a ```mermaid fence shows as a diagram, and the button on the block switches it to its mermaid source — comments are made on the source, so that is where to select text to comment on a diagram,
-   - that a selection also offers `✏️ Edit`, which opens that line and three either side as markdown and writes the file when they press Apply; applied edits can be undone from the buttons at the bottom right, and if the file changed underneath them they are shown both versions and asked which to keep,
+   - that a selection also offers `✏️ Edit`, which opens that line and three either side as markdown and writes the file when they press Apply; if the file changed underneath them they are shown both versions and asked which to keep,
    - that a ```diff fence shows as a GitHub-style side-by-side comparison with the changed words picked out, and the button on the block switches it to the unified diff source — comments are made on the source, so that is where to select text to comment on a change,
    - that HTML comments (`<!-- ... -->`) in the markdown show as dim inline notes; the small toggle above the top-right corner of the page hides or shows them (their text can be selected and copied, but review comments cannot be left on it),
    - that they should invoke `/markserv-marker:review-markdown` when they are done commenting, so the feedback gets applied.
