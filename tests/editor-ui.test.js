@@ -120,13 +120,16 @@ const pressEdit = async ({window, document}) => {
 	await tick(30)
 }
 
-test('the bar offers Edit beside Comment, badged with the wider range', async t => {
+test('the bar offers Edit then Comment, Edit badged with the selected lines', async t => {
 	const page = await buildPage()
 	await selectLine(page, 5)
 
 	const edit = page.document.querySelector('.marker-select-edit')
 	t.truthy(edit)
 	t.true(edit.textContent.includes('Edit'))
+	// Edit on the left, Comment on the right
+	const bar = page.document.querySelector('.marker-select-bar')
+	t.deepEqual([...bar.children].map(button => button.querySelector('.marker-select-label').textContent), ['Edit', 'Comment'])
 	// The line selected, not the wider window the editor opens around it
 	t.is(edit.querySelector('.marker-select-lines').textContent, 'L5')
 	// The comment button carries no badge at all
@@ -551,4 +554,25 @@ test('after a reload the editor is rebuilt focused where the caret was, its sele
 	t.is(after.selectionStart, 7)
 	t.is(page.document.querySelectorAll('mark.marker-pending').length, 1)
 	t.is(page.document.querySelector('mark.marker-pending').textContent, 'second paragraph')
+})
+
+test('an editor for a selection across blocks opens under the last of them, like a comment form', async t => {
+	const page = await buildPage({content: 'first paragraph here\n\nsecond paragraph here\n'})
+	const first = page.document.querySelector('p[data-source-line="1"]').firstChild
+	const second = page.document.querySelector('p[data-source-line="3"]').firstChild
+	const range = page.document.createRange()
+	range.setStart(first, 6)
+	range.setEnd(second, 6)
+	const selection = page.window.getSelection()
+	selection.removeAllRanges()
+	selection.addRange(range)
+	page.document.dispatchEvent(new page.window.Event('mouseup', {bubbles: true}))
+	await tick(10)
+	await pressEdit(page)
+
+	const panel = page.document.querySelector('.marker-editor')
+	t.truthy(panel)
+	t.is(panel.previousElementSibling.dataset.sourceLine, '3')
+	// The window still starts above the first line selected
+	t.is(page.document.querySelector('.marker-editor-lineno').textContent, '1')
 })

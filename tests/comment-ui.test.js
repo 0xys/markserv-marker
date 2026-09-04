@@ -215,7 +215,7 @@ test('shift+enter posts the draft, plain enter and IME enter do not', async t =>
 
 	document.dispatchEvent(new window.Event('mouseup', {bubbles: true}))
 	await tick(10)
-	document.querySelector('.marker-select-btn')
+	document.querySelector('.marker-select-btn:not(.marker-select-edit)')
 		.dispatchEvent(new window.Event('mousedown', {bubbles: true, cancelable: true}))
 	await tick(10)
 
@@ -295,7 +295,7 @@ const postQuoteIndex = async nth => {
 	const {window, document, calls} = await buildPage([], REPEATED)
 	selectOccurrence(window, document.querySelector('p[data-source-line="3"]'), 'text', nth)
 	await tick(10)
-	document.querySelector('.marker-select-btn')
+	document.querySelector('.marker-select-btn:not(.marker-select-edit)')
 		.dispatchEvent(new window.Event('mousedown', {bubbles: true, cancelable: true}))
 	await tick(10)
 
@@ -970,7 +970,7 @@ test('selecting mermaid source posts the fence line range', async t => {
 
 	document.dispatchEvent(new window.Event('mouseup', {bubbles: true}))
 	await tick(10)
-	document.querySelector('.marker-select-btn')
+	document.querySelector('.marker-select-btn:not(.marker-select-edit)')
 		.dispatchEvent(new window.Event('mousedown', {bubbles: true, cancelable: true}))
 	await tick(10)
 
