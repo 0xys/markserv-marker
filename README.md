@@ -11,6 +11,7 @@ Built for the workflow where an AI agent (Claude Code etc.) serves a Markdown fi
 - **No more port conflicts.** markserv starts one server per file, so every invocation has to hunt for a free port. markserv-marker runs a single daemon on a fixed port (default `7642`); the CLI just registers files with it and prints the URL.
 - **Index page.** `/` lists everything currently served, with comment counts and each document's own title beside its file name — a tree of `index.md` files is otherwise indistinguishable.
 - **Review comments.** Select any text in the rendered page and a floating Comment button appears; the comment records the enclosing source-line range plus the selected text (`quote`), which stays highlighted in the page. A comment on a table row or a list item appears right under that row or item, collapsed to a single line until opened, rather than after the whole block. Comments support threads and resolve/unresolve, and either a single comment or a whole thread can be deleted from the page — the thread's own button sits in its header, within reach while it is collapsed. They live in memory for the daemon's lifetime — no files written.
+- **Fix it while you are reading it.** A selection also offers `✏️ Edit`, which opens the line and three either side as markdown and writes them back with `Apply`. Applied edits undo and redo from the page's own buttons. If something else changed those lines while the editor was open, the file's version is shown against yours and you choose which one lands — nothing is overwritten silently.
 - **Comments API.** Everything the UI does is available over HTTP for agents.
 - **Mermaid diagrams you can comment on.** A ```mermaid fence renders as a diagram, and a button on the block switches it to its mermaid source. Comments are made on the source, so a review can point at the line that draws the wrong arrow; the button carries a badge when the block has unresolved comments.
 
@@ -113,6 +114,7 @@ All request/response bodies are JSON.
 | `GET /api/files/:id` | One registration |
 | `DELETE /api/files/:id` | Unregister (drops its comments) |
 | `GET /api/files/:id/content` | `{path, lines, content}` — raw markdown for line mapping |
+| `PATCH /api/files/:id/content` | Replace lines: `{lineStart, lineEnd, base, text}`, optional `{force:true}`. `base` is the text those lines held when they were read; the range is re-located by it, and a base that has gone answers `409` with the current text unless forced |
 | `GET /api/files/:id/comments` | Threads; filters: `?resolved=false`, `?since=<ISO>` |
 | `POST /api/files/:id/comments` | Root: `{line}` or `{lineStart, lineEnd}` + `{body, author}`, optional `{quote}` (the selected text) and `{quoteIndex}` (which occurrence of it, 0-based). Reply: `{parentId, body, author}` |
 | `DELETE /api/files/:id/comments` | Bulk-delete comments; `?resolved=true` clears only resolved threads |

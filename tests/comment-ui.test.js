@@ -114,12 +114,16 @@ test('selecting text shows the comment button and posts with quote + lines', asy
 	document.dispatchEvent(new window.Event('mouseup', {bubbles: true}))
 	await tick(10)
 
-	const button = document.querySelector('.marker-select-btn')
-	t.truthy(button)
-	t.is(button.style.display, 'inline-flex')
-	// The lines it would land on, badged inside the button
-	t.is(button.querySelector('.marker-select-lines').textContent, 'L3')
+	// Both actions ride in one positioned bar
+	const bar = document.querySelector('.marker-select-bar')
+	t.truthy(bar)
+	t.is(bar.style.display, 'flex')
+	const button = bar.querySelector('.marker-select-btn:not(.marker-select-edit)')
 	t.true(button.textContent.includes('Comment'))
+	// No line badge here: a comment lands on what the reader just selected.
+	// The editor's badge says which lines it would open.
+	t.falsy(button.querySelector('.marker-select-lines'))
+	t.is(bar.querySelector('.marker-select-edit .marker-select-lines').textContent, 'L3')
 
 	// Click (mousedown) the button -> form appears with a quote preview
 	button.dispatchEvent(new window.Event('mousedown', {bubbles: true, cancelable: true}))
@@ -145,6 +149,36 @@ test('selecting text shows the comment button and posts with quote + lines', asy
 	t.is(post.body.quote, 'reviewable text')
 	t.is(post.body.body, 'Needs work')
 	t.is(post.body.author, 'tester')
+})
+
+test('the comment form keeps the selection marked, and drops it on cancel', async t => {
+	const {window, document} = await buildPage([])
+
+	const paragraph = document.querySelector('p[data-source-line="3"]')
+	const textNode = paragraph.firstChild
+	const range = document.createRange()
+	const offset = textNode.nodeValue.indexOf('reviewable')
+	range.setStart(textNode, offset)
+	range.setEnd(textNode, offset + 'reviewable text'.length)
+	const selection = window.getSelection()
+	selection.removeAllRanges()
+	selection.addRange(range)
+	document.dispatchEvent(new window.Event('mouseup', {bubbles: true}))
+	await tick(10)
+
+	document.querySelector('.marker-select-btn:not(.marker-select-edit)')
+		.dispatchEvent(new window.Event('mousedown', {bubbles: true, cancelable: true}))
+	await tick(10)
+
+	const mark = document.querySelector('mark.marker-pending')
+	t.truthy(mark)
+	t.is(mark.textContent, 'reviewable text')
+
+	const buttons = [...document.querySelectorAll('.marker-form .marker-btn')]
+	buttons.find(button => button.textContent === 'Cancel')
+		.dispatchEvent(new window.MouseEvent('click', {bubbles: true}))
+	await tick(10)
+	t.falsy(document.querySelector('mark.marker-pending'))
 })
 
 test('a selection spanning blocks shows the whole range', async t => {
@@ -709,6 +743,28 @@ const rowThread = (id, line, body) => ({
 	createdAt: '2026-07-21T00:00:00.000Z',
 	resolved: false,
 	replies: []
+})
+
+// A thread showing its snapshot diff of a table row presents the widest
+// source line as the width its cell wants, and the table is laid out around
+// it. The widget is given the table's own width instead, measured — jsdom has
+// no layout, so the measurement is supplied.
+test('a widget riding in a row is pinned to the table\'s width, and follows it', async t => {
+	const {window, document} = await buildPage([rowThread('abc123-c1', 5, 'On the first row')], TABLE_MARKDOWN)
+	const table = document.querySelector('#marker-content table')
+	const widget = () => document.querySelector('.marker-thread')
+
+	// Nothing to measure yet, so nothing was pinned
+	t.is(widget().style.width, '')
+
+	Object.defineProperty(table, 'clientWidth', {value: 420, configurable: true})
+	document.dispatchEvent(new window.CustomEvent('marker:comments', {detail: {fileId: 'abc123'}}))
+	await tick(20)
+	t.is(widget().style.width, '420px')
+
+	Object.defineProperty(table, 'clientWidth', {value: 260, configurable: true})
+	window.dispatchEvent(new window.Event('resize'))
+	t.is(widget().style.width, '260px')
 })
 
 test('a thread on a table row sits under that row, not after the table', async t => {
