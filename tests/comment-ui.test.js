@@ -1205,3 +1205,171 @@ test('a decorated markdown comment does not shift quoteIndex counting', async t 
 	t.falsy(mark.closest('.marker-md-comment'))
 	t.true(mark.nextSibling.nodeValue.startsWith(' here.'))
 })
+
+/* ---------- what a re-render and a reload may and may not do to open UI ---------- */
+
+const TWO_PARAGRAPHS = 'first paragraph here\n\nsecond paragraph here\n'
+
+// Select part of a block's first text node and let the bar appear
+const selectIn = async (page, selector, from, to) => {
+	const node = page.document.querySelector(selector).firstChild
+	const range = page.document.createRange()
+	range.setStart(node, from)
+	range.setEnd(node, to)
+	const selection = page.window.getSelection()
+	selection.removeAllRanges()
+	selection.addRange(range)
+	page.document.dispatchEvent(new page.window.Event('mouseup', {bubbles: true}))
+	await tick(10)
+}
+
+const pressComment = async page => {
+	page.document.querySelector('.marker-select-btn:not(.marker-select-edit)')
+		.dispatchEvent(new page.window.Event('mousedown', {bubbles: true, cancelable: true}))
+	await tick(10)
+}
+
+// What the hot-reload client does: the content swapped wholesale, then the event
+const reload = async (page, markdown) => {
+	page.document.querySelector('#marker-content').innerHTML = await markdownToHTML(markdown)
+	page.document.dispatchEvent(new page.window.CustomEvent('marker:reload'))
+	await tick(30)
+}
+
+const pushComments = async page => {
+	page.document.dispatchEvent(new page.window.CustomEvent('marker:comments', {detail: {fileId: 'abc123'}}))
+	await tick(30)
+}
+
+test('posting a comment takes the selection mark with it', async t => {
+	const page = await buildPage([])
+	await selectIn(page, 'p[data-source-line="3"]', 5, 14)
+	await pressComment(page)
+	t.is(page.document.querySelectorAll('mark.marker-pending').length, 1)
+
+	const textarea = page.document.querySelector('.marker-form textarea')
+	textarea.value = 'a comment'
+	textarea.dispatchEvent(new page.window.Event('input', {bubbles: true}))
+	page.document.querySelector('.marker-form .marker-btn-primary').click()
+	await tick(30)
+
+	// The comment now carries its own highlight; the blue would sit on top of it
+	t.is(page.document.querySelectorAll('.marker-form').length, 0)
+	t.is(page.document.querySelectorAll('mark.marker-pending').length, 0)
+})
+
+test('a comment form survives a comments push with its focus and caret', async t => {
+	const page = await buildPage([])
+	await selectIn(page, 'p[data-source-line="3"]', 5, 14)
+	await pressComment(page)
+
+	const textarea = page.document.querySelector('.marker-form textarea')
+	textarea.value = 'half a thought'
+	textarea.dispatchEvent(new page.window.Event('input', {bubbles: true}))
+	textarea.focus()
+	textarea.setSelectionRange(4, 4)
+	textarea.dispatchEvent(new page.window.KeyboardEvent('keyup', {key: 'ArrowLeft', bubbles: true}))
+
+	await pushComments(page)
+
+	// The same element: rebuilding it would drop the caret and an IME
+	// composition, and the focus that followed dragged the page to it
+	t.is(page.document.querySelector('.marker-form textarea'), textarea)
+	t.is(page.document.activeElement, textarea)
+	t.is(textarea.selectionStart, 4)
+	t.is(page.document.querySelectorAll('.marker-form').length, 1)
+})
+
+test('after a reload the form is rebuilt in place, focused where the caret was, and its mark returns', async t => {
+	const page = await buildPage([])
+	await selectIn(page, 'p[data-source-line="3"]', 5, 14)
+	await pressComment(page)
+	const before = page.document.querySelector('.marker-form textarea')
+	before.value = 'half a thought'
+	before.dispatchEvent(new page.window.Event('input', {bubbles: true}))
+	before.focus()
+	before.setSelectionRange(4, 4)
+	before.dispatchEvent(new page.window.KeyboardEvent('keyup', {key: 'ArrowLeft', bubbles: true}))
+
+	await reload(page, MARKDOWN)
+
+	const after = page.document.querySelector('.marker-form textarea')
+	t.truthy(after)
+	t.not(after, before)
+	t.is(after.value, 'half a thought')
+	t.is(page.document.activeElement, after)
+	t.is(after.selectionStart, 4)
+	// The mark came from a Range into content that is gone; the draft knows
+	// enough to find the text again
+	t.is(page.document.querySelectorAll('mark.marker-pending').length, 1)
+	t.is(page.document.querySelector('mark.marker-pending').textContent, 'paragraph')
+})
+
+test('a reload hides the selection bar, whose blocks went with the old content', async t => {
+	const page = await buildPage([])
+	await selectIn(page, 'p[data-source-line="3"]', 5, 14)
+	const bar = page.document.querySelector('.marker-select-bar')
+	t.is(bar.style.display, 'flex')
+
+	await reload(page, MARKDOWN)
+	t.is(bar.style.display, 'none')
+	// Pressing what is no longer offered inserts nothing, anywhere
+	await pressComment(page)
+	t.is(page.document.querySelectorAll('.marker-form').length, 0)
+})
+
+test('a form for a selection across blocks comes back at the block it ended in', async t => {
+	const page = await buildPage([], TWO_PARAGRAPHS)
+	const first = page.document.querySelector('p[data-source-line="1"]').firstChild
+	const second = page.document.querySelector('p[data-source-line="3"]').firstChild
+	const range = page.document.createRange()
+	range.setStart(first, 6)
+	range.setEnd(second, 6)
+	const selection = page.window.getSelection()
+	selection.removeAllRanges()
+	selection.addRange(range)
+	page.document.dispatchEvent(new page.window.Event('mouseup', {bubbles: true}))
+	await tick(10)
+	await pressComment(page)
+
+	const placedAfter = () => page.document.querySelector('.marker-form').previousElementSibling.dataset.sourceLine
+	t.is(placedAfter(), '3')
+	await reload(page, TWO_PARAGRAPHS)
+	t.is(placedAfter(), '3')
+})
+
+test('cancelling a comment form in a table row takes the row it rode in', async t => {
+	const page = await buildPage([], TABLE_MARKDOWN)
+	await selectIn(page, 'tr[data-source-line="5"] td:last-child', 0, 5)
+	await pressComment(page)
+	t.is(page.document.querySelectorAll('tr.marker-thread-row').length, 1)
+
+	page.document.querySelector('.marker-form .marker-btn:not(.marker-btn-primary)').click()
+	await tick(10)
+	// An emptied host row still holds a column-spanning cell the table is laid out around
+	t.is(page.document.querySelectorAll('tr.marker-thread-row').length, 0)
+	t.is(page.document.querySelectorAll('mark.marker-pending').length, 0)
+})
+
+test('a widget in a table that scrolls sideways is pinned to what shows, not to the grid', async t => {
+	const {window, document} = await buildPage([rowThread('abc123-c1', 5, 'On the first row')], TABLE_MARKDOWN)
+	const table = document.querySelector('#marker-content table')
+	const widget = () => document.querySelector('.marker-thread')
+
+	// The host cell spans every column: hidden, it reports the grid's width,
+	// which for a table that scrolls sideways is more than is visible
+	Object.defineProperty(window.HTMLTableCellElement.prototype, 'clientWidth',
+		{get: () => 1200, configurable: true})
+	Object.defineProperty(table, 'clientWidth', {value: 400, configurable: true})
+	Object.defineProperty(table, 'scrollWidth', {value: 1202, configurable: true})
+	window.dispatchEvent(new window.Event('resize'))
+	// The visible width, less the 2px of collapsed border the grid exceeds the cell by
+	t.is(widget().style.width, '398px')
+
+	// A table that fits: the cell is the right measure, borders excluded
+	Object.defineProperty(window.HTMLTableCellElement.prototype, 'clientWidth',
+		{get: () => 396, configurable: true})
+	Object.defineProperty(table, 'scrollWidth', {value: 398, configurable: true})
+	window.dispatchEvent(new window.Event('resize'))
+	t.is(widget().style.width, '396px')
+})

@@ -506,3 +506,49 @@ test('Undo and Redo appear once an edit has been applied, and reverse it', async
 	await tick(30)
 	t.true(page.file.content.includes('SECOND paragraph'))
 })
+
+/* ---------- the panel across a comments push and a reload ---------- */
+
+test('the editor survives a comments push with its focus and caret', async t => {
+	const page = await buildPage()
+	await selectLine(page, 5)
+	await pressEdit(page)
+	const textarea = page.document.querySelector('.marker-editor textarea')
+	textarea.focus()
+	textarea.setSelectionRange(7, 7)
+	textarea.dispatchEvent(new page.window.KeyboardEvent('keyup', {key: 'ArrowLeft', bubbles: true}))
+
+	page.document.dispatchEvent(new page.window.CustomEvent('marker:comments', {detail: {fileId: 'abc123'}}))
+	await tick(30)
+
+	t.is(page.document.querySelector('.marker-editor textarea'), textarea)
+	t.is(page.document.activeElement, textarea)
+	t.is(textarea.selectionStart, 7)
+	t.is(page.document.querySelectorAll('.marker-editor').length, 1)
+})
+
+test('after a reload the editor is rebuilt focused where the caret was, its selection marked again', async t => {
+	const page = await buildPage()
+	await selectLine(page, 5)
+	await pressEdit(page)
+	const before = page.document.querySelector('.marker-editor textarea')
+	before.value = before.value.replace('second', 'SECOND')
+	before.dispatchEvent(new page.window.Event('input', {bubbles: true}))
+	before.focus()
+	before.setSelectionRange(7, 7)
+	before.dispatchEvent(new page.window.KeyboardEvent('keyup', {key: 'ArrowLeft', bubbles: true}))
+	t.is(page.document.querySelectorAll('mark.marker-pending').length, 1)
+
+	page.document.querySelector('#marker-content').innerHTML = await markdownToHTML(SOURCE)
+	page.document.dispatchEvent(new page.window.CustomEvent('marker:reload'))
+	await tick(40)
+
+	const after = page.document.querySelector('.marker-editor textarea')
+	t.truthy(after)
+	t.not(after, before)
+	t.true(after.value.includes('SECOND'))
+	t.is(page.document.activeElement, after)
+	t.is(after.selectionStart, 7)
+	t.is(page.document.querySelectorAll('mark.marker-pending').length, 1)
+	t.is(page.document.querySelector('mark.marker-pending').textContent, 'second paragraph')
+})

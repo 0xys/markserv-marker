@@ -170,21 +170,36 @@ mark.marker-quote.resolved {
 	border-left: 1px solid rgba(128, 128, 128, 0.25);
 }
 
-.marker-diff-table {
+/* Written against the theme, not alone: every rule that makes a table look
+   like one is `.markdown-body table…`, and a lone class loses to it — the
+   diff came out `display: block; width: max-content` with the theme's cell
+   padding, borders and zebra rows, and its two columns no longer sat under
+   the two heads above them. */
+.markdown-body .marker-diff-table {
+	display: table;
 	width: 100%;
+	max-width: none;
+	margin: 0;
 	border-collapse: collapse;
 	table-layout: fixed;
+	overflow: visible;
 }
 
-.marker-diff-cell {
+.markdown-body .marker-diff-table tr.marker-diff-row {
+	border: 0;
+	background: none;
+}
+
+.markdown-body .marker-diff-table td.marker-diff-cell {
 	width: 50%;
 	padding: 1px 8px;
+	border: 0;
 	vertical-align: top;
 	white-space: pre-wrap;
 	word-break: break-word;
 }
 
-.marker-diff-cell:first-child {
+.markdown-body .marker-diff-table td.marker-diff-cell:first-child {
 	border-right: 1px solid rgba(128, 128, 128, 0.25);
 }
 
@@ -630,12 +645,6 @@ li > .marker-editor {
 /* The github-markdown theme sizes every table to its content, which leaves
    the comparison stopping short of the pane it sits in. Scoped to the pane so
    the snapshot diff inside a thread keeps the width it has always had. */
-.marker-editor-disk .marker-diff-table {
-	display: table;
-	width: 100%;
-	max-width: none;
-}
-
 /* Overwriting someone else's lines is the one destructive choice here */
 .marker-btn.marker-editor-force:hover {
 	background: rgba(248, 81, 73, 0.35);

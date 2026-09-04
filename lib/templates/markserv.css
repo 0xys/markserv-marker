@@ -12,6 +12,8 @@
   --markserv-slider-thumb: #58a6ff;
   --markserv-slider-track: #2d333b;
   --markserv-table-head-bg: #21262d;
+  --markserv-table-row-bg: #0d1117;
+  --markserv-table-row-alt-bg: #151b23;
 }
 
 [data-theme="light"] {
@@ -25,6 +27,8 @@
   --markserv-slider-thumb: #0969da;
   --markserv-slider-track: #c5ccd3;
   --markserv-table-head-bg: #eaeef2;
+  --markserv-table-row-bg: #ffffff;
+  --markserv-table-row-alt-bg: #f6f8fa;
 }
 
 [data-theme="synthwave"] {
@@ -38,6 +42,8 @@
   --markserv-slider-thumb: #ff7edb;
   --markserv-slider-track: #46355e;
   --markserv-table-head-bg: #372a4d;
+  --markserv-table-row-bg: #241b2f;
+  --markserv-table-row-alt-bg: #1a1228;
 }
 
 [data-theme="solarized"] {
@@ -51,6 +57,8 @@
   --markserv-slider-thumb: #2aa198;
   --markserv-slider-track: #0a4a58;
   --markserv-table-head-bg: #0e4f5e;
+  --markserv-table-row-bg: #002b36;
+  --markserv-table-row-alt-bg: #073642;
 }
 
 body {
@@ -423,6 +431,18 @@ a.page-btn {
   .marker-sticky-shell {
     display: none !important;
   }
+}
+
+/* The theme stripes rows with nth-child, which counts the rows widgets ride
+   in, so every row below an inline comment swapped shade and two same-shaded
+   rows met across it. Stripe the table's own rows, counted among themselves;
+   the colours are the theme's, moved onto variables. */
+.markdown-body table:not(.marker-diff-table) > tbody > tr:not([data-marker-ui]) {
+  background-color: var(--markserv-table-row-bg);
+}
+
+.markdown-body table:not(.marker-diff-table) > tbody > tr:nth-child(2n of :not([data-marker-ui])) {
+  background-color: var(--markserv-table-row-alt-bg);
 }
 
 /* Tabs in code blocks render 4 columns wide (browser default is 8) */

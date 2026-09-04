@@ -72,6 +72,9 @@
 
 	function apply(wide) {
 		document.body.style.width = wide ? '100%' : '';
+		// The column changed width without the window doing so; widths pinned
+		// to a table and the sticky-header choice per table both follow resize
+		window.dispatchEvent(new Event('resize'));
 		btn.textContent = wide ? '\u25A3' : '\u26F6';
 		btn.title = wide ? 'Back to default width' : 'Expand to window width';
 	}
