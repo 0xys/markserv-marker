@@ -12,9 +12,9 @@
 
 
 .marker-select-btn {
-	display: none;
-	position: absolute;
-	z-index: 40;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
 	padding: 4px 12px;
 	border: none;
 	border-radius: 6px;
@@ -25,8 +25,65 @@
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
+/* Each part of the label is its own box, as tall as its own text, so the
+   three are centred against one another rather than against whichever font
+   happens to have the tallest metrics */
+.marker-select-icon,
+.marker-select-label {
+	line-height: 1;
+}
+
+/* Both actions a selection offers, joined into one control: no gap, one
+   outline, one shadow, a hairline between them. Two separate buttons floating
+   side by side read as two unrelated things arriving at once. */
+.marker-select-bar {
+	display: none;
+	position: absolute;
+	z-index: 40;
+	align-items: stretch;
+	border-radius: 6px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+	overflow: hidden;
+}
+
+.marker-select-bar .marker-select-btn {
+	border-radius: 0;
+	box-shadow: none;
+}
+
+.marker-select-bar .marker-select-btn + .marker-select-btn {
+	border-left: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* The lines this comment would land on. A translucent badge inside the
+   button, the way the mermaid and diff toggles carry their count. */
+.marker-select-lines {
+	/* The pill is padding around a line box exactly as tall as the digits.
+	   Given a taller line box instead, the digits sit high in it — they have
+	   no descenders to fill the space below the baseline — and the badge
+	   reads as shifted against the label beside it, which centring the boxes
+	   cannot correct. */
+	padding: 2px 6px;
+	border-radius: 8px;
+	background: rgba(255, 255, 255, 0.25);
+	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+	font-size: 11px;
+	line-height: 1;
+	white-space: nowrap;
+}
+
 .marker-select-btn:hover {
 	background: #4a91f9;
+}
+
+/* What a form or editor was opened on, kept visible after focus moved into
+   the textarea and took the browser's own highlight with it. Blue, like the
+   button that opened it — amber already means "a comment lives here". */
+mark.marker-pending {
+	background: rgba(47, 129, 247, 0.32);
+	color: inherit;
+	border-bottom: 2px solid rgba(47, 129, 247, 0.85);
+	padding: 0;
 }
 
 mark.marker-quote {
@@ -113,21 +170,36 @@ mark.marker-quote.resolved {
 	border-left: 1px solid rgba(128, 128, 128, 0.25);
 }
 
-.marker-diff-table {
+/* Written against the theme, not alone: every rule that makes a table look
+   like one is `.markdown-body table…`, and a lone class loses to it — the
+   diff came out `display: block; width: max-content` with the theme's cell
+   padding, borders and zebra rows, and its two columns no longer sat under
+   the two heads above them. */
+.markdown-body .marker-diff-table {
+	display: table;
 	width: 100%;
+	max-width: none;
+	margin: 0;
 	border-collapse: collapse;
 	table-layout: fixed;
+	overflow: visible;
 }
 
-.marker-diff-cell {
+.markdown-body .marker-diff-table tr.marker-diff-row {
+	border: 0;
+	background: none;
+}
+
+.markdown-body .marker-diff-table td.marker-diff-cell {
 	width: 50%;
 	padding: 1px 8px;
+	border: 0;
 	vertical-align: top;
 	white-space: pre-wrap;
 	word-break: break-word;
 }
 
-.marker-diff-cell:first-child {
+.markdown-body .marker-diff-table td.marker-diff-cell:first-child {
 	border-right: 1px solid rgba(128, 128, 128, 0.25);
 }
 
@@ -165,6 +237,33 @@ mark.marker-quote.resolved {
 	border-radius: 6px;
 	background: rgba(128, 128, 128, 0.08);
 	font-size: 14px;
+}
+
+/* A thread on a table row rides in a row of its own, and one on a list item
+   inside that item, so the comment stays with the line it is about. The theme
+   styles cells as `.markdown-body table td`, which outranks a lone class, so
+   the host cell has to say .markdown-body to strip the padding and borders a
+   data cell would get. */
+.markdown-body table tr.marker-thread-row,
+.markdown-body table td.marker-thread-cell {
+	padding: 0;
+	border: 0;
+	background: none;
+}
+
+/* In a row the width is pinned to the table's own, and the padding has to
+   come out of it rather than be added to it */
+.marker-thread-cell > * {
+	box-sizing: border-box;
+}
+
+/* Tighter than a thread standing on its own: it is nested in a row or an item
+   whose own spacing already separates it from what follows */
+.marker-thread-cell > .marker-thread,
+.marker-thread-cell > .marker-form,
+li > .marker-thread,
+li > .marker-form {
+	margin: 2px 0 6px;
 }
 
 .marker-thread.resolved {
@@ -253,6 +352,23 @@ mark.marker-quote.resolved {
 }
 
 .marker-delete:hover {
+	opacity: 1;
+}
+
+/* It sits on every thread head, resolved or not, so it stays quiet until
+   pointed at: the neighbouring Resolve is the button meant to catch the eye */
+.marker-thread-delete {
+	padding: 1px 6px;
+	opacity: 0.45;
+}
+
+.marker-thread-head:hover .marker-thread-delete {
+	opacity: 0.8;
+}
+
+.marker-thread-delete:hover {
+	background: rgba(248, 81, 73, 0.35);
+	border-color: rgba(248, 81, 73, 0.5);
 	opacity: 1;
 }
 
@@ -364,3 +480,174 @@ mark.marker-quote.resolved {
 	padding-top: 8px;
 	border-top: 1px dashed rgba(128, 128, 128, 0.4);
 }
+
+/* Editing the source. Same frame as a comment form — it arrives the same way,
+   from the same selection, and sits where a comment on those lines would. */
+.marker-editor {
+	margin: 8px 0 16px;
+	padding: 8px 10px;
+	border: 1px solid rgba(128, 128, 128, 0.35);
+	border-left: 3px solid #d29922;
+	border-radius: 6px;
+	background: rgba(128, 128, 128, 0.08);
+	font-size: 14px;
+}
+
+.marker-thread-cell > .marker-editor,
+li > .marker-editor {
+	margin: 2px 0 6px;
+}
+
+.marker-editor-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 6px;
+}
+
+/* The gutter and the textarea share every metric that decides where a line
+   sits: same font, same size, same line height, same vertical padding. Any
+   difference between them shows up as numbers drifting away from their text. */
+.marker-editor-frame {
+	display: flex;
+	position: relative;
+	align-items: stretch;
+	border: 1px solid rgba(128, 128, 128, 0.4);
+	border-radius: 4px;
+	overflow: hidden;
+}
+
+.marker-editor-gutter {
+	flex: none;
+	/* The horizontal padding belongs to the numbers, or a selected one's
+	   background would stop short of the gutter's edges */
+	padding: 6px 0;
+	border-right: 1px solid rgba(128, 128, 128, 0.3);
+	background: rgba(128, 128, 128, 0.08);
+	overflow: hidden;
+	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+	font-size: 13px;
+	line-height: 1.5;
+	text-align: right;
+	user-select: none;
+}
+
+.marker-editor-lineno {
+	/* Given the height of the line it numbers, so a wrapped line's number
+	   stays beside the row it starts on */
+	box-sizing: border-box;
+	padding: 0 8px 0 6px;
+	opacity: 0.45;
+}
+
+/* The lines the reader selected, against the context either side of them */
+.marker-editor-lineno.selected {
+	background: rgba(210, 153, 34, 0.15);
+	opacity: 1;
+	font-weight: 600;
+	color: #d29922;
+}
+
+/* The other half of that band, behind the text itself. It shows through
+   because .marker-textarea is transparent, and the textarea is lifted above
+   it so the letters stay on top. */
+.marker-editor-band {
+	position: absolute;
+	z-index: 0;
+	right: 0;
+	background: rgba(210, 153, 34, 0.15);
+	pointer-events: none;
+}
+
+/* Monospace and taller than a comment box: this is source, and a seven-line
+   window is the smallest thing worth editing */
+.marker-editor-textarea {
+	flex: 1;
+	position: relative;
+	z-index: 1;
+	min-width: 0;
+	min-height: 120px;
+	border: none;
+	border-radius: 0;
+	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+	font-size: 13px;
+	line-height: 1.5;
+	tab-size: 4;
+	white-space: pre-wrap;
+	word-break: break-word;
+	overflow-x: hidden;
+	/* The panel already grows to whatever the text needs, the gutter holding
+	   one row per line at that line's own height. Dragging the handle smaller
+	   is the one thing that clips the text without clipping the numbers
+	   beside it, so there is nothing left for the handle to do. */
+	resize: none;
+}
+
+/* The rectangles the selected text occupies, one per visual row, laid over
+   the line band and under the letters. Stronger than the band: the band says
+   which line, this says which words. */
+.marker-editor-quotes {
+	position: absolute;
+	z-index: 0;
+	inset: 0;
+	overflow: hidden;
+	pointer-events: none;
+}
+
+.marker-editor-quote {
+	position: absolute;
+	background: rgba(210, 153, 34, 0.42);
+	border-radius: 2px;
+}
+
+/* Off-screen twin of the textarea's text, one child per source line, used to
+   ask how tall each line renders once wrapped. Every metric that affects
+   wrapping has to match the textarea; the width is set from it at measure
+   time, since that is the part that changes. */
+.marker-editor-measure {
+	position: absolute;
+	visibility: hidden;
+	pointer-events: none;
+	top: 0;
+	left: -9999px;
+	padding: 0;
+	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+	font-size: 13px;
+	line-height: 1.5;
+	tab-size: 4;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+/* What the file holds now, when that stopped being what the editor opened on */
+.marker-editor-disk {
+	margin-top: 10px;
+	padding-top: 8px;
+	border-top: 1px dashed rgba(210, 153, 34, 0.6);
+}
+
+.marker-editor-disk-head {
+	margin-bottom: 6px;
+	font-size: 12px;
+	opacity: 0.8;
+}
+
+.marker-editor-disk-text {
+	margin: 0 0 6px;
+	padding: 4px 8px;
+	border: 1px solid rgba(128, 128, 128, 0.3);
+	border-radius: 4px;
+	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+	font-size: 12px;
+	white-space: pre-wrap;
+}
+
+/* The github-markdown theme sizes every table to its content, which leaves
+   the comparison stopping short of the pane it sits in. Scoped to the pane so
+   the snapshot diff inside a thread keeps the width it has always had. */
+/* Overwriting someone else's lines is the one destructive choice here */
+.marker-btn.marker-editor-force:hover {
+	background: rgba(248, 81, 73, 0.35);
+	border-color: rgba(248, 81, 73, 0.5);
+}
+

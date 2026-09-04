@@ -12,6 +12,8 @@
   --markserv-slider-thumb: #58a6ff;
   --markserv-slider-track: #2d333b;
   --markserv-table-head-bg: #21262d;
+  --markserv-table-row-bg: #0d1117;
+  --markserv-table-row-alt-bg: #151b23;
 }
 
 [data-theme="light"] {
@@ -25,6 +27,8 @@
   --markserv-slider-thumb: #0969da;
   --markserv-slider-track: #c5ccd3;
   --markserv-table-head-bg: #eaeef2;
+  --markserv-table-row-bg: #ffffff;
+  --markserv-table-row-alt-bg: #f6f8fa;
 }
 
 [data-theme="synthwave"] {
@@ -38,6 +42,8 @@
   --markserv-slider-thumb: #ff7edb;
   --markserv-slider-track: #46355e;
   --markserv-table-head-bg: #372a4d;
+  --markserv-table-row-bg: #241b2f;
+  --markserv-table-row-alt-bg: #1a1228;
 }
 
 [data-theme="solarized"] {
@@ -51,6 +57,8 @@
   --markserv-slider-thumb: #2aa198;
   --markserv-slider-track: #0a4a58;
   --markserv-table-head-bg: #0e4f5e;
+  --markserv-table-row-bg: #002b36;
+  --markserv-table-row-alt-bg: #073642;
 }
 
 body {
@@ -96,6 +104,98 @@ body .markdown-body {
   .page-controls {
     display: none !important;
   }
+  .marker-file-path {
+    display: none !important;
+  }
+}
+
+/* Strip above the page frame: the file's full path on the left, feature
+   toggles (md-comments.css) on the right. Both anchor to the article, so
+   they need it positioned; nothing inside the article positions against a
+   farther ancestor, so this is safe. The wider top margin is what gives the
+   strip its room above body's border. */
+body.marker-doc {
+  margin-top: 48px;
+}
+
+body .markdown-body {
+  position: relative;
+}
+
+/* The dimming lives on the child spans, not the container: an opacity on the
+   container would also wash out the tooltip pseudo-element. */
+.marker-file-path {
+  position: absolute;
+  top: -29px;
+  left: 0;
+  height: 22px;
+  max-width: calc(100% - 130px);
+  display: flex;
+  align-items: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--markserv-btn-color);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* The directory part yields to ellipsis; the file name always stays visible */
+.marker-file-path-dir {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.45;
+}
+
+.marker-file-path-base {
+  flex: none;
+  font-weight: 600;
+  opacity: 0.6;
+}
+
+.marker-file-path:hover .marker-file-path-dir {
+  opacity: 0.8;
+}
+
+.marker-file-path:hover .marker-file-path-base {
+  opacity: 0.95;
+}
+
+.marker-file-path.copied::after {
+  content: "✓ copied";
+  flex: none;
+  margin-left: 8px;
+  font-weight: 600;
+  color: #3fb950;
+}
+
+/* Tooltip with the full path. Below the bar, not above: the bar sits at the
+   very top of the document, where anything higher would be clipped. */
+.marker-file-path::before {
+  content: attr(data-path);
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 10000;
+  width: max-content;
+  max-width: min(90vw, 720px);
+  padding: 6px 10px;
+  border: 1px solid var(--markserv-btn-border);
+  border-radius: 6px;
+  background: var(--markserv-btn-bg);
+  color: var(--markserv-btn-color);
+  font-size: 11px;
+  font-weight: normal;
+  line-height: 1.5;
+  white-space: normal;
+  word-break: break-all;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease 0.15s;
+}
+
+.marker-file-path:hover::before {
+  opacity: 1;
 }
 
 /* Directory listing icons */
@@ -274,6 +374,75 @@ a.page-btn {
 .markdown-body thead th {
   background-color: var(--markserv-table-head-bg);
   border-bottom: 2px solid var(--markserv-border);
+}
+
+/* A long table's header pins to the top of the window instead of scrolling
+   away. The class is set by table-head.js, and only on tables that report no
+   sideways scrolling to do: the theme's `overflow: auto` is what a sticky
+   header has to give up, and a table too wide for the column needs it more.
+   The bottom border is drawn again as a shadow because a collapsed border
+   belongs to the table, not the cell, and stops being painted once the cell
+   is lifted out of the flow. */
+.markdown-body table.marker-sticky-head {
+  overflow: visible;
+}
+
+.markdown-body table.marker-sticky-head thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  box-shadow: inset 0 -2px 0 var(--markserv-border);
+}
+
+/* The other half: a table that keeps its sideways scrolling cannot hold a
+   header that sticks to the window, so table-head.js copies the header row
+   into this — fixed at the top, clipped to the table's visible width, and slid
+   sideways to follow the table's own scrolling. Inert: the header you can
+   select is the real one underneath. */
+.marker-sticky-shell {
+  position: fixed;
+  top: 0;
+  z-index: 3;
+  display: none;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.marker-sticky-shell .marker-sticky-clone {
+  position: relative;
+  display: table;
+  margin: 0;
+  max-width: none;
+  overflow: visible;
+  table-layout: fixed;
+}
+
+/* Widths are handed over as border-box measurements */
+.marker-sticky-shell .marker-sticky-clone th,
+.marker-sticky-shell .marker-sticky-clone td {
+  box-sizing: border-box;
+}
+
+@media print {
+  .markdown-body table.marker-sticky-head thead th {
+    position: static;
+  }
+
+  .marker-sticky-shell {
+    display: none !important;
+  }
+}
+
+/* The theme stripes rows with nth-child, which counts the rows widgets ride
+   in, so every row below an inline comment swapped shade and two same-shaded
+   rows met across it. Stripe the table's own rows, counted among themselves;
+   the colours are the theme's, moved onto variables. */
+.markdown-body table:not(.marker-diff-table) > tbody > tr:not([data-marker-ui]) {
+  background-color: var(--markserv-table-row-bg);
+}
+
+.markdown-body table:not(.marker-diff-table) > tbody > tr:nth-child(2n of :not([data-marker-ui])) {
+  background-color: var(--markserv-table-row-alt-bg);
 }
 
 /* Tabs in code blocks render 4 columns wide (browser default is 8) */

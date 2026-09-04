@@ -10,11 +10,18 @@ Built for the workflow where an AI agent (Claude Code etc.) serves a Markdown fi
 
 - **No more port conflicts.** markserv starts one server per file, so every invocation has to hunt for a free port. markserv-marker runs a single daemon on a fixed port (default `7642`); the CLI just registers files with it and prints the URL.
 - **Index page.** `/` lists everything currently served, with comment counts and each document's own title beside its file name — a tree of `index.md` files is otherwise indistinguishable.
-- **Review comments.** Select any text in the rendered page and a floating Comment button appears; the comment records the enclosing source-line range plus the selected text (`quote`), which stays highlighted in the page. Comments support threads and resolve/unresolve. They live in memory for the daemon's lifetime — no files written.
+- **Review comments.** Select any text in the rendered page and a floating Comment button appears; the comment records the enclosing source-line range plus the selected text (`quote`), which stays highlighted in the page. A comment on a table row or a list item appears right under that row or item, collapsed to a single line until opened, rather than after the whole block. Comments support threads and resolve/unresolve, and either a single comment or a whole thread can be deleted from the page — the thread's own button sits in its header, within reach while it is collapsed. They live in memory for the daemon's lifetime — no files written.
+- **Fix it while you are reading it.** A selection also offers `✏️ Edit`, which opens the line and three either side as markdown and writes them back with `Apply`. If something else changed those lines while the editor was open, the file's version is shown against yours and you choose which one lands — nothing is overwritten silently.
 - **Comments API.** Everything the UI does is available over HTTP for agents.
 - **Mermaid diagrams you can comment on.** A ```mermaid fence renders as a diagram, and a button on the block switches it to its mermaid source. Comments are made on the source, so a review can point at the line that draws the wrong arrow; the button carries a badge when the block has unresolved comments.
 
+- **Diffs you can read side by side.** A ```diff fence, and a `.diff` or `.patch` file opened on its own, render as a GitHub-style two-column comparison with each side's line numbers and the changed words within a line picked out. A button on the block switches to the unified source, which is where comments are made. Long lines wrap inside their column rather than widening the block, so it stays within the page frame however narrow that is; the page's own width button is there when a comparison wants more room. A hand-written block with no `@@` header is compared too, without line numbers to invent.
+
+- **A long table keeps its header.** Scrolling down a tall table pins its header row to the top of the window, so the columns keep meaning something. That includes tables too wide for the page, which cannot pin a header of their own: theirs is copied to the top of the window and slid along as the table scrolls sideways.
+
 - **Bare URLs become links.** A URL pasted into the text does not need `[]()` around it. Only URLs carrying a scheme are linkified, so `README.md` stays a file name, and a link ends where Japanese punctuation begins rather than swallowing the `。` after it.
+
+- **Markdown comments are subtly visible.** An HTML comment (`<!-- ... -->`) in the source shows up dimmed in place instead of disappearing, so author notes are not lost in review. A small toggle above the page frame — present only when the document has comments — hides them again, and the choice persists across sessions.
 
 Everything else is markserv: GitHub-style rendering, themes, syntax highlighting, live reload while you edit.
 
@@ -107,6 +114,7 @@ All request/response bodies are JSON.
 | `GET /api/files/:id` | One registration |
 | `DELETE /api/files/:id` | Unregister (drops its comments) |
 | `GET /api/files/:id/content` | `{path, lines, content}` — raw markdown for line mapping |
+| `PATCH /api/files/:id/content` | Replace lines: `{lineStart, lineEnd, base, text}`, optional `{force:true}`. `base` is the text those lines held when they were read; the range is re-located by it, and a base that has gone answers `409` with the current text unless forced |
 | `GET /api/files/:id/comments` | Threads; filters: `?resolved=false`, `?since=<ISO>` |
 | `POST /api/files/:id/comments` | Root: `{line}` or `{lineStart, lineEnd}` + `{body, author}`, optional `{quote}` (the selected text) and `{quoteIndex}` (which occurrence of it, 0-based). Reply: `{parentId, body, author}` |
 | `DELETE /api/files/:id/comments` | Bulk-delete comments; `?resolved=true` clears only resolved threads |

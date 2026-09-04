@@ -1,0 +1,209 @@
+/* Side-by-side view of a ```diff block.
+   No data-mode means the browser found no diff to compare (or the script never
+   ran), and the unified source stays visible on its own. */
+
+.marker-diffblock {
+	position: relative;
+}
+
+/* Only one of the two views is in the DOM at a time: diff-block.js builds the
+   comparison when the block is switched to it and removes it again, so that a
+   selection cannot run through the view being hidden. The source has to stay,
+   being what comments anchor to, so it is hidden here — and made unselectable
+   with it, or a selection in the comparison would drag the raw diff along. */
+.marker-diffblock[data-mode="split"] > pre {
+	display: none;
+	user-select: none;
+}
+
+.marker-diffblock-view {
+	overflow: hidden;
+	margin-bottom: 16px;
+	background: var(--markserv-bg);
+	border: 1px solid var(--markserv-btn-border);
+	border-radius: 6px;
+	font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+	font-size: 12px;
+	line-height: 1.5;
+}
+
+/* Every rule here outranks the github-markdown theme's own table rules,
+   which are written as `.markdown-body table td` and would otherwise win:
+   they turn a table into a display:block, max-content-wide box with a border
+   around each cell and an opaque background on each row — a data grid, not a
+   diff. Hence the .marker-diffblock prefix throughout. */
+.marker-diffblock .marker-diffblock-table {
+	display: table;
+	width: 100%;
+	max-width: none;
+	margin: 0;
+	overflow: visible;
+	border-collapse: collapse;
+	table-layout: fixed;
+}
+
+.marker-diffblock .marker-diffblock-table tr {
+	background: none;
+	border: 0;
+}
+
+.marker-diffblock .marker-diffblock-table td {
+	border: 0;
+}
+
+.marker-diffblock-col-no {
+	width: 46px;
+}
+
+/* Nothing to put in the gutters of a block that had no hunk header */
+.marker-diffblock-table.no-numbers .marker-diffblock-col-no {
+	width: 10px;
+}
+
+/* Long lines wrap rather than scroll: a row sizes to its taller cell, so
+   wrapping keeps the two sides aligned, which is the whole point of reading
+   them side by side. Tabs are everywhere in patches and markserv.css only
+   sets tab-size on pre. */
+.marker-diffblock .marker-diffblock-cell {
+	padding: 0 8px;
+	vertical-align: top;
+	white-space: pre-wrap;
+	word-break: break-word;
+	tab-size: 4;
+}
+
+.marker-diffblock .marker-diffblock-no {
+	padding: 0 6px;
+	text-align: right;
+	vertical-align: top;
+	color: var(--markserv-btn-color);
+	opacity: 0.4;
+	user-select: none;
+}
+
+/* A selection that spans rows becomes a cell selection and would otherwise
+   hand over both columns, tab-separated. diff-block.js marks which side the
+   drag started on; the other one steps out of the way, so what gets copied is
+   one version of the text rather than the two interleaved. */
+.marker-diffblock-view.select-old .marker-diffblock-new,
+.marker-diffblock-view.select-new .marker-diffblock-old {
+	user-select: none;
+}
+
+/* Translucent, so one set of values reads correctly on all four themes — the
+   way the snapshot diff in comments.css does it — and so the changed words can
+   simply deepen the line they are in. The unified view keeps highlight.js's own
+   per-theme diff colours: matched to these it came out too faint to read. */
+.marker-diffblock .marker-diffblock-cell.del {
+	background: rgba(248, 81, 73, 0.12);
+}
+
+.marker-diffblock .marker-diffblock-cell.del .chg {
+	background: rgba(248, 81, 73, 0.4);
+	border-radius: 2px;
+}
+
+.marker-diffblock .marker-diffblock-cell.add {
+	background: rgba(63, 185, 80, 0.12);
+}
+
+.marker-diffblock .marker-diffblock-cell.add .chg {
+	background: rgba(63, 185, 80, 0.4);
+	border-radius: 2px;
+}
+
+/* A line with no counterpart on this side: neither a deletion nor an addition */
+.marker-diffblock .marker-diffblock-cell.empty {
+	background: rgba(128, 128, 128, 0.08);
+}
+
+.marker-diffblock .marker-diffblock-cell.ctx {
+	opacity: 0.75;
+}
+
+.marker-diffblock .marker-diffblock-no + .marker-diffblock-cell + .marker-diffblock-no {
+	border-left: 1px solid var(--markserv-btn-border);
+}
+
+/* File headers, hunk headers and the no-newline marker: not part of either
+   side, so they run the full width, with a band to separate the hunks */
+.marker-diffblock .marker-diffblock-meta,
+.marker-diffblock .marker-diffblock-hunk,
+.marker-diffblock .marker-diffblock-note {
+	padding: 1px 8px;
+	color: var(--markserv-btn-color);
+	white-space: pre-wrap;
+	word-break: break-all;
+}
+
+.marker-diffblock .marker-diffblock-meta {
+	background: rgba(128, 128, 128, 0.1);
+	opacity: 0.6;
+}
+
+.marker-diffblock .marker-diffblock-hunk {
+	background: rgba(110, 118, 129, 0.25);
+	opacity: 0.85;
+}
+
+.marker-diffblock .marker-diffblock-note {
+	opacity: 0.5;
+}
+
+/* Why a block stayed unified when it looks like it should not have */
+.marker-diffblock-reason {
+	margin: 4px 0;
+	padding: 4px 8px;
+	border-left: 3px solid rgba(210, 153, 34, 0.9);
+	background: rgba(210, 153, 34, 0.12);
+	font-size: 12px;
+	opacity: 0.85;
+}
+
+.marker-diffblock-toggle {
+	position: absolute;
+	top: 6px;
+	right: 6px;
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	padding: 2px 10px;
+	border: 1px solid var(--markserv-btn-border);
+	border-radius: 12px;
+	background: var(--markserv-btn-bg);
+	color: var(--markserv-btn-color);
+	font-size: 11px;
+	line-height: 18px;
+	white-space: nowrap;
+	cursor: pointer;
+	opacity: 0.55;
+	transition: opacity 0.15s ease;
+	/* It floats over the top-right of the block, which is exactly where a
+	   drag along the first line ends. Selectable, it would take the endpoint
+	   into marked-up UI, and the Comment button never appears for those. */
+	user-select: none;
+}
+
+.marker-diffblock:hover > .marker-diffblock-toggle,
+.marker-diffblock-toggle:focus {
+	opacity: 1;
+}
+
+/* A block with unresolved comments is worth opening: keep its button lit */
+.marker-diffblock-toggle:has(.marker-diffblock-count) {
+	opacity: 1;
+}
+
+.marker-diffblock-count {
+	padding: 0 6px;
+	border-radius: 8px;
+	font-size: 10px;
+	line-height: 15px;
+	background: rgba(210, 153, 34, 0.45);
+}
+
+@media print {
+	.marker-diffblock-toggle {
+		display: none !important;
+	}
+}

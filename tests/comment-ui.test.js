@@ -10,6 +10,10 @@ const {markdownToHTML} = require('../lib/server')
 const COMMENTS_JS = fs.readFileSync(
 	path.join(__dirname, '..', 'lib', 'templates', 'comments.js'), 'utf8')
 
+// The word diff comments.js reads off window.markerDiff lives here
+const DIFF_CORE_JS = fs.readFileSync(
+	path.join(__dirname, '..', 'lib', 'templates', 'diff-core.js'), 'utf8')
+
 const MARKDOWN = `# Title
 
 This paragraph has some reviewable text in it.
@@ -58,6 +62,7 @@ const buildPage = async (threads, markdown = MARKDOWN) => {
 		})
 	}
 
+	window.eval(DIFF_CORE_JS)
 	window.eval(COMMENTS_JS)
 	await tick(20) // Let the initial refresh() settle
 	return {window, document: window.document, calls}
@@ -109,9 +114,16 @@ test('selecting text shows the comment button and posts with quote + lines', asy
 	document.dispatchEvent(new window.Event('mouseup', {bubbles: true}))
 	await tick(10)
 
-	const button = document.querySelector('.marker-select-btn')
-	t.truthy(button)
-	t.is(button.style.display, 'block')
+	// Both actions ride in one positioned bar
+	const bar = document.querySelector('.marker-select-bar')
+	t.truthy(bar)
+	t.is(bar.style.display, 'flex')
+	const button = bar.querySelector('.marker-select-btn:not(.marker-select-edit)')
+	t.true(button.textContent.includes('Comment'))
+	// No line badge here: a comment lands on what the reader just selected.
+	// The editor's badge says which lines it would open.
+	t.falsy(button.querySelector('.marker-select-lines'))
+	t.is(bar.querySelector('.marker-select-edit .marker-select-lines').textContent, 'L3')
 
 	// Click (mousedown) the button -> form appears with a quote preview
 	button.dispatchEvent(new window.Event('mousedown', {bubbles: true, cancelable: true}))
@@ -139,6 +151,55 @@ test('selecting text shows the comment button and posts with quote + lines', asy
 	t.is(post.body.author, 'tester')
 })
 
+test('the comment form keeps the selection marked, and drops it on cancel', async t => {
+	const {window, document} = await buildPage([])
+
+	const paragraph = document.querySelector('p[data-source-line="3"]')
+	const textNode = paragraph.firstChild
+	const range = document.createRange()
+	const offset = textNode.nodeValue.indexOf('reviewable')
+	range.setStart(textNode, offset)
+	range.setEnd(textNode, offset + 'reviewable text'.length)
+	const selection = window.getSelection()
+	selection.removeAllRanges()
+	selection.addRange(range)
+	document.dispatchEvent(new window.Event('mouseup', {bubbles: true}))
+	await tick(10)
+
+	document.querySelector('.marker-select-btn:not(.marker-select-edit)')
+		.dispatchEvent(new window.Event('mousedown', {bubbles: true, cancelable: true}))
+	await tick(10)
+
+	const mark = document.querySelector('mark.marker-pending')
+	t.truthy(mark)
+	t.is(mark.textContent, 'reviewable text')
+
+	const buttons = [...document.querySelectorAll('.marker-form .marker-btn')]
+	buttons.find(button => button.textContent === 'Cancel')
+		.dispatchEvent(new window.MouseEvent('click', {bubbles: true}))
+	await tick(10)
+	t.falsy(document.querySelector('mark.marker-pending'))
+})
+
+test('a selection spanning blocks shows the whole range', async t => {
+	const {window, document} = await buildPage([])
+
+	const paragraphs = [...document.querySelectorAll('#marker-content p[data-source-line]')]
+	const range = document.createRange()
+	range.setStart(paragraphs[0].firstChild, 0)
+	range.setEnd(paragraphs[1].firstChild, 5)
+	const selection = window.getSelection()
+	selection.removeAllRanges()
+	selection.addRange(range)
+	document.dispatchEvent(new window.Event('mouseup', {bubbles: true}))
+	await tick(10)
+
+	const lines = document.querySelector('.marker-select-lines')
+	const from = paragraphs[0].dataset.sourceLine
+	const to = paragraphs[1].dataset.sourceLineEnd
+	t.is(lines.textContent, 'L' + from + '-' + to)
+})
+
 test('shift+enter posts the draft, plain enter and IME enter do not', async t => {
 	const {window, document, calls} = await buildPage([])
 
@@ -154,7 +215,7 @@ test('shift+enter posts the draft, plain enter and IME enter do not', async t =>
 
 	document.dispatchEvent(new window.Event('mouseup', {bubbles: true}))
 	await tick(10)
-	document.querySelector('.marker-select-btn')
+	document.querySelector('.marker-select-btn:not(.marker-select-edit)')
 		.dispatchEvent(new window.Event('mousedown', {bubbles: true, cancelable: true}))
 	await tick(10)
 
@@ -234,7 +295,7 @@ const postQuoteIndex = async nth => {
 	const {window, document, calls} = await buildPage([], REPEATED)
 	selectOccurrence(window, document.querySelector('p[data-source-line="3"]'), 'text', nth)
 	await tick(10)
-	document.querySelector('.marker-select-btn')
+	document.querySelector('.marker-select-btn:not(.marker-select-edit)')
 		.dispatchEvent(new window.Event('mousedown', {bubbles: true, cancelable: true}))
 	await tick(10)
 
@@ -320,6 +381,77 @@ test('reply and resolve controls issue the right API calls', async t => {
 	t.deepEqual(patch.body, {resolved: true})
 })
 
+// Deleting is offered on each comment too, but only inside the body, which a
+// collapsed thread hides — and a thread one wants rid of is usually collapsed.
+test('a thread can be deleted from its head while collapsed', async t => {
+	const {window, document, calls} = await buildPage([{
+		id: 'abc123-c1',
+		fileId: 'abc123',
+		lineStart: 3,
+		lineEnd: 3,
+		quote: null,
+		parentId: null,
+		author: 'reviewer',
+		body: 'Root comment',
+		createdAt: '2026-07-21T00:00:00.000Z',
+		resolved: true,
+		replies: [{
+			id: 'abc123-c2',
+			fileId: 'abc123',
+			parentId: 'abc123-c1',
+			author: 'claude',
+			body: 'Done',
+			createdAt: '2026-07-21T01:00:00.000Z',
+			resolved: false
+		}]
+	}])
+
+	const widget = document.querySelector('.marker-thread')
+	// Resolved threads start collapsed, which is the state under test
+	t.true(widget.classList.contains('collapsed'))
+
+	const button = widget.querySelector('.marker-thread-delete')
+	t.truthy(button)
+	// In the head, so hiding the body does not hide it
+	t.is(button.parentElement.className, 'marker-thread-head')
+	t.falsy(button.closest('.marker-thread-body'))
+	// It says what goes with it
+	t.is(button.title, 'Delete this comment and its 1 reply')
+
+	button.dispatchEvent(new window.MouseEvent('click', {bubbles: true}))
+	await tick(20)
+
+	const removed = calls.find(call => call.method === 'DELETE')
+	t.truthy(removed)
+	t.true(removed.url.endsWith('/api/comments/abc123-c1'))
+	// The click must not reach the head underneath and expand the thread
+	t.true(document.querySelector('.marker-thread').classList.contains('collapsed'))
+})
+
+test('declining the confirmation deletes nothing', async t => {
+	const {window, document, calls} = await buildPage([{
+		id: 'abc123-c1',
+		fileId: 'abc123',
+		lineStart: 3,
+		lineEnd: 3,
+		quote: null,
+		parentId: null,
+		author: 'reviewer',
+		body: 'Root comment',
+		createdAt: '2026-07-21T00:00:00.000Z',
+		resolved: false,
+		replies: []
+	}])
+
+	window.confirm = () => false
+	const button = document.querySelector('.marker-thread-delete')
+	t.is(button.title, 'Delete this comment')
+	button.dispatchEvent(new window.MouseEvent('click', {bubbles: true}))
+	await tick(20)
+
+	t.falsy(calls.find(call => call.method === 'DELETE'))
+})
+
 test('the widget sits by the re-anchored line, not where it was written', async t => {
 	// Two paragraphs were inserted above the commented one, so the API reports
 	// line 7 while the comment was originally written against line 5
@@ -348,6 +480,7 @@ test('the widget sits by the re-anchored line, not where it was written', async 
 			}]
 		})
 	})
+	window.eval(DIFF_CORE_JS)
 	window.eval(COMMENTS_JS)
 	await tick(20)
 
@@ -554,6 +687,155 @@ test('same-block comments render in ascending line order', async t => {
 	t.deepEqual(ids, ['abc123-c1', 'abc123-c2'])
 })
 
+// Selecting a table row hands over its cells tab-separated, and markdown-it
+// leaves a newline text node between the cells, so the quote matches across
+// them. Wrapping those newlines put a <mark> straight into the <tr>, where the
+// browser draws it as a cell of its own and the row grew columns.
+test('highlighting a table row does not give the row extra cells', async t => {
+	const markdown = 'intro\n\n| # | label | note |\n|---|---|---|\n' +
+		'| 3.1.1 | start | runs in the morning |\n| 3.1.2 | check | validates the input |\n'
+	const {document} = await buildPage([{
+		id: 'abc123-c1',
+		fileId: 'abc123',
+		lineStart: 5,
+		lineEnd: 5,
+		// What the browser posts for a row selection
+		quote: '3.1.1\tstart\truns in the morning',
+		parentId: null,
+		author: 'reviewer',
+		body: 'On this row',
+		createdAt: '2026-07-21T00:00:00.000Z',
+		resolved: false,
+		replies: []
+	}], markdown)
+
+	// The widget rides in a row of its own, which is not a content row
+	const rows = [...document.querySelectorAll('#marker-content table tr')]
+		.filter(row => !row.classList.contains('marker-thread-row'))
+	t.deepEqual(rows.map(row => row.children.length), [3, 3, 3])
+	for (const row of rows) {
+		t.deepEqual([...row.children].filter(cell => !['TD', 'TH'].includes(cell.tagName)), [])
+	}
+
+	// The quote still highlights, one mark per cell it covers
+	const marks = [...document.querySelectorAll('mark.marker-quote')]
+	t.is(marks.length, 3)
+	t.deepEqual(marks.map(mark => mark.parentElement.tagName), ['TD', 'TD', 'TD'])
+	t.deepEqual(marks.map(mark => mark.textContent),
+		['3.1.1', 'start', 'runs in the morning'])
+})
+
+// A row in the middle of a long table is a long way from the end of it, and a
+// widget shown down there loses its subject. A table row can hold the widget
+// itself, the way GitHub puts a review comment under the line it is about.
+const TABLE_MARKDOWN = 'intro\n\n| # | label | note |\n|---|---|---|\n' +
+	'| 3.1.1 | start | first row |\n| 3.1.2 | check | second row |\n| 3.1.3 | stop | third row |\n\nafter\n'
+
+const rowThread = (id, line, body) => ({
+	id,
+	fileId: 'abc123',
+	lineStart: line,
+	lineEnd: line,
+	quote: null,
+	parentId: null,
+	author: 'reviewer',
+	body,
+	createdAt: '2026-07-21T00:00:00.000Z',
+	resolved: false,
+	replies: []
+})
+
+// A thread showing its snapshot diff of a table row presents the widest
+// source line as the width its cell wants, and the table is laid out around
+// it. The widget is given the table's own width instead, measured — jsdom has
+// no layout, so the measurement is supplied.
+test('a widget riding in a row is pinned to the table\'s width, and follows it', async t => {
+	const {window, document} = await buildPage([rowThread('abc123-c1', 5, 'On the first row')], TABLE_MARKDOWN)
+	const table = document.querySelector('#marker-content table')
+	const widget = () => document.querySelector('.marker-thread')
+
+	// Nothing to measure yet, so nothing was pinned
+	t.is(widget().style.width, '')
+
+	Object.defineProperty(table, 'clientWidth', {value: 420, configurable: true})
+	document.dispatchEvent(new window.CustomEvent('marker:comments', {detail: {fileId: 'abc123'}}))
+	await tick(20)
+	t.is(widget().style.width, '420px')
+
+	Object.defineProperty(table, 'clientWidth', {value: 260, configurable: true})
+	window.dispatchEvent(new window.Event('resize'))
+	t.is(widget().style.width, '260px')
+})
+
+test('a thread on a table row sits under that row, not after the table', async t => {
+	const {document} = await buildPage([rowThread('abc123-c1', 5, 'On the first row')], TABLE_MARKDOWN)
+
+	const widget = document.querySelector('.marker-thread')
+	const host = widget.closest('tr')
+	t.truthy(host)
+	t.true(host.classList.contains('marker-thread-row'))
+	t.is(host.dataset.markerUi, '')
+
+	// Directly under the row it is about, which is the second row of the table
+	const rows = [...document.querySelectorAll('#marker-content table tr')]
+	t.is(rows.indexOf(host), rows.indexOf(rows[1]) + 1)
+	t.true(rows[1].textContent.includes('first row'))
+
+	// One cell spanning the row's columns, and the content rows keep their own
+	const cell = host.children[0]
+	t.is(host.children.length, 1)
+	t.is(cell.getAttribute('colspan'), '3')
+	t.deepEqual(rows.filter(row => !row.classList.contains('marker-thread-row'))
+		.map(row => row.children.length), [3, 3, 3, 3])
+
+	// Collapsed, so it does not push the rows around it apart
+	t.true(widget.classList.contains('collapsed'))
+	t.is(widget.querySelector('.marker-chevron').textContent, '▸')
+})
+
+test('several threads on one row stay under it in line order', async t => {
+	const {document} = await buildPage([
+		rowThread('abc123-c1', 5, 'First'),
+		rowThread('abc123-c2', 6, 'Second')
+	], TABLE_MARKDOWN)
+
+	const rows = [...document.querySelectorAll('#marker-content table tr')]
+	t.deepEqual(rows.map(row => row.classList.contains('marker-thread-row') ?
+		'widget:' + row.querySelector('.marker-thread').dataset.threadId :
+		'row:' + row.children[0].textContent), [
+		'row:#',
+		'row:3.1.1',
+		'widget:abc123-c1',
+		'row:3.1.2',
+		'widget:abc123-c2',
+		'row:3.1.3'
+	])
+})
+
+test('a thread on a list item sits inside that item', async t => {
+	const markdown = 'intro\n\n- first item\n- second item\n- third item\n\nafter\n'
+	const {document} = await buildPage([rowThread('abc123-c1', 4, 'On the second')], markdown)
+
+	const widget = document.querySelector('.marker-thread')
+	const item = widget.closest('li')
+	t.truthy(item)
+	t.true(item.textContent.includes('second item'))
+	// Inside the item, so the list keeps its three markers
+	t.is(document.querySelectorAll('#marker-content ul > li').length, 3)
+	t.is(item.lastElementChild, widget)
+	t.true(widget.classList.contains('collapsed'))
+})
+
+test('a thread on a paragraph is unchanged: after it, and open', async t => {
+	const {document} = await buildPage([rowThread('abc123-c1', 3, 'On the paragraph')],
+		'# Title\n\nA paragraph to comment on.\n\nAnother one.\n')
+
+	const widget = document.querySelector('.marker-thread')
+	t.is(widget.parentElement.id, 'marker-content')
+	t.is(widget.previousElementSibling.tagName, 'P')
+	t.false(widget.classList.contains('collapsed'))
+})
+
 test('a repeated short quote highlights the occurrence in the commented lines', async t => {
 	// "word" appears on line 3 and again in a table header on line 7;
 	// the comment anchors to line 7, so the table occurrence must win
@@ -578,6 +860,7 @@ test('a repeated short quote highlights the occurrence in the commented lines', 
 			}]
 		})
 	})
+	window.eval(DIFF_CORE_JS)
 	window.eval(COMMENTS_JS)
 	await tick(20)
 
@@ -687,7 +970,7 @@ test('selecting mermaid source posts the fence line range', async t => {
 
 	document.dispatchEvent(new window.Event('mouseup', {bubbles: true}))
 	await tick(10)
-	document.querySelector('.marker-select-btn')
+	document.querySelector('.marker-select-btn:not(.marker-select-edit)')
 		.dispatchEvent(new window.Event('mousedown', {bubbles: true, cancelable: true}))
 	await tick(10)
 
@@ -725,6 +1008,56 @@ test('text inside a rendered diagram is kept out of quote matching', async t => 
 	const marks = [...document.querySelectorAll('mark.marker-quote')]
 	t.is(marks.length, 1)
 	t.truthy(marks[0].closest('pre.marker-mermaid-source'))
+})
+
+/* ---------- diff blocks ---------- */
+
+const DIFF_MARKDOWN = `# Title
+
+\`\`\`diff
+@@ -1,2 +1,2 @@
+-const b = 2
++const b = 3
+\`\`\`
+
+Closing paragraph.
+`
+
+test('a thread on a diff block sits after the whole block, not inside it', async t => {
+	const {document} = await buildPage(
+		[mermaidThread('abc123-c1', 5, 'const b = 2')], DIFF_MARKDOWN)
+
+	const wrapper = document.querySelector('.marker-diffblock')
+	const widget = document.querySelector('.marker-thread')
+	t.truthy(widget)
+	// The data-marker-wrapper on the block is what insertionPoint climbs out of
+	t.is(widget.parentElement.id, 'marker-content')
+	t.is(wrapper.nextElementSibling, widget)
+
+	// The quote is highlighted in the source, which is where comments are made
+	const mark = document.querySelector('mark.marker-quote')
+	t.truthy(mark.closest('.marker-diffblock pre'))
+})
+
+test('text in the side-by-side view is kept out of quote matching', async t => {
+	const {window, document} = await buildPage(
+		[mermaidThread('abc123-c1', 5, 'const b = 2')], DIFF_MARKDOWN)
+
+	// What lib/templates/diff-block.js adds: a table repeating every line of
+	// the block. Unmarked it would double each string in the corpus and shift
+	// occurrence counting for the whole document, so it is marked as UI.
+	const view = document.createElement('div')
+	view.className = 'marker-diffblock-view'
+	view.dataset.markerUi = ''
+	view.innerHTML = '<table><tr><td>const b = 2</td><td>const b = 3</td></tr></table>'
+	document.querySelector('.marker-diffblock').append(view)
+
+	document.dispatchEvent(new window.CustomEvent('marker:comments'))
+	await tick(20)
+
+	const marks = [...document.querySelectorAll('mark.marker-quote')]
+	t.is(marks.length, 1)
+	t.truthy(marks[0].closest('.marker-diffblock pre'))
 })
 
 test('marker:rendered fires once widgets and highlights are in place', async t => {
@@ -839,4 +1172,204 @@ test('a highlight outside any link still does not cancel the click', async t => 
 	mark.dispatchEvent(event)
 	await tick(10)
 	t.false(event.defaultPrevented)
+})
+
+/* ---------- markdown HTML comments ---------- */
+
+const MD_COMMENTS_JS = fs.readFileSync(
+	path.join(__dirname, '..', 'lib', 'templates', 'md-comments.js'), 'utf8')
+
+// "text" twice with an HTML comment between them whose note repeats the very
+// word being quoted. The visible note md-comments.js inserts is a real,
+// selectable text node marked data-marker-ui — unmarked, it would join the
+// quote corpus and quoteIndex 1 would land on the note instead.
+const COMMENTED = '# T\n\nkeep the text <!-- a text note --> and also drop the text here.\n'
+
+test('a decorated markdown comment does not shift quoteIndex counting', async t => {
+	const {window, document} = await buildPage([{
+		id: 'abc123-c1', fileId: 'abc123', lineStart: 3, lineEnd: 3,
+		quote: 'text', quoteIndex: 1, parentId: null, author: 'reviewer',
+		body: 'this one', createdAt: '2026-07-21T00:00:00.000Z', resolved: false, replies: []
+	}], COMMENTED)
+
+	window.eval(MD_COMMENTS_JS)
+	await tick(10)
+	t.is(document.querySelector('.marker-md-comment').textContent, ' a text note ')
+
+	document.dispatchEvent(new window.CustomEvent('marker:comments'))
+	await tick(20)
+
+	// Occurrence 1 over the corpus (which skips the note) is the last "text"
+	const mark = document.querySelector('mark.marker-quote')
+	t.truthy(mark)
+	t.falsy(mark.closest('.marker-md-comment'))
+	t.true(mark.nextSibling.nodeValue.startsWith(' here.'))
+})
+
+/* ---------- what a re-render and a reload may and may not do to open UI ---------- */
+
+const TWO_PARAGRAPHS = 'first paragraph here\n\nsecond paragraph here\n'
+
+// Select part of a block's first text node and let the bar appear
+const selectIn = async (page, selector, from, to) => {
+	const node = page.document.querySelector(selector).firstChild
+	const range = page.document.createRange()
+	range.setStart(node, from)
+	range.setEnd(node, to)
+	const selection = page.window.getSelection()
+	selection.removeAllRanges()
+	selection.addRange(range)
+	page.document.dispatchEvent(new page.window.Event('mouseup', {bubbles: true}))
+	await tick(10)
+}
+
+const pressComment = async page => {
+	page.document.querySelector('.marker-select-btn:not(.marker-select-edit)')
+		.dispatchEvent(new page.window.Event('mousedown', {bubbles: true, cancelable: true}))
+	await tick(10)
+}
+
+// What the hot-reload client does: the content swapped wholesale, then the event
+const reload = async (page, markdown) => {
+	page.document.querySelector('#marker-content').innerHTML = await markdownToHTML(markdown)
+	page.document.dispatchEvent(new page.window.CustomEvent('marker:reload'))
+	await tick(30)
+}
+
+const pushComments = async page => {
+	page.document.dispatchEvent(new page.window.CustomEvent('marker:comments', {detail: {fileId: 'abc123'}}))
+	await tick(30)
+}
+
+test('posting a comment takes the selection mark with it', async t => {
+	const page = await buildPage([])
+	await selectIn(page, 'p[data-source-line="3"]', 5, 14)
+	await pressComment(page)
+	t.is(page.document.querySelectorAll('mark.marker-pending').length, 1)
+
+	const textarea = page.document.querySelector('.marker-form textarea')
+	textarea.value = 'a comment'
+	textarea.dispatchEvent(new page.window.Event('input', {bubbles: true}))
+	page.document.querySelector('.marker-form .marker-btn-primary').click()
+	await tick(30)
+
+	// The comment now carries its own highlight; the blue would sit on top of it
+	t.is(page.document.querySelectorAll('.marker-form').length, 0)
+	t.is(page.document.querySelectorAll('mark.marker-pending').length, 0)
+})
+
+test('a comment form survives a comments push with its focus and caret', async t => {
+	const page = await buildPage([])
+	await selectIn(page, 'p[data-source-line="3"]', 5, 14)
+	await pressComment(page)
+
+	const textarea = page.document.querySelector('.marker-form textarea')
+	textarea.value = 'half a thought'
+	textarea.dispatchEvent(new page.window.Event('input', {bubbles: true}))
+	textarea.focus()
+	textarea.setSelectionRange(4, 4)
+	textarea.dispatchEvent(new page.window.KeyboardEvent('keyup', {key: 'ArrowLeft', bubbles: true}))
+
+	await pushComments(page)
+
+	// The same element: rebuilding it would drop the caret and an IME
+	// composition, and the focus that followed dragged the page to it
+	t.is(page.document.querySelector('.marker-form textarea'), textarea)
+	t.is(page.document.activeElement, textarea)
+	t.is(textarea.selectionStart, 4)
+	t.is(page.document.querySelectorAll('.marker-form').length, 1)
+})
+
+test('after a reload the form is rebuilt in place, focused where the caret was, and its mark returns', async t => {
+	const page = await buildPage([])
+	await selectIn(page, 'p[data-source-line="3"]', 5, 14)
+	await pressComment(page)
+	const before = page.document.querySelector('.marker-form textarea')
+	before.value = 'half a thought'
+	before.dispatchEvent(new page.window.Event('input', {bubbles: true}))
+	before.focus()
+	before.setSelectionRange(4, 4)
+	before.dispatchEvent(new page.window.KeyboardEvent('keyup', {key: 'ArrowLeft', bubbles: true}))
+
+	await reload(page, MARKDOWN)
+
+	const after = page.document.querySelector('.marker-form textarea')
+	t.truthy(after)
+	t.not(after, before)
+	t.is(after.value, 'half a thought')
+	t.is(page.document.activeElement, after)
+	t.is(after.selectionStart, 4)
+	// The mark came from a Range into content that is gone; the draft knows
+	// enough to find the text again
+	t.is(page.document.querySelectorAll('mark.marker-pending').length, 1)
+	t.is(page.document.querySelector('mark.marker-pending').textContent, 'paragraph')
+})
+
+test('a reload hides the selection bar, whose blocks went with the old content', async t => {
+	const page = await buildPage([])
+	await selectIn(page, 'p[data-source-line="3"]', 5, 14)
+	const bar = page.document.querySelector('.marker-select-bar')
+	t.is(bar.style.display, 'flex')
+
+	await reload(page, MARKDOWN)
+	t.is(bar.style.display, 'none')
+	// Pressing what is no longer offered inserts nothing, anywhere
+	await pressComment(page)
+	t.is(page.document.querySelectorAll('.marker-form').length, 0)
+})
+
+test('a form for a selection across blocks comes back at the block it ended in', async t => {
+	const page = await buildPage([], TWO_PARAGRAPHS)
+	const first = page.document.querySelector('p[data-source-line="1"]').firstChild
+	const second = page.document.querySelector('p[data-source-line="3"]').firstChild
+	const range = page.document.createRange()
+	range.setStart(first, 6)
+	range.setEnd(second, 6)
+	const selection = page.window.getSelection()
+	selection.removeAllRanges()
+	selection.addRange(range)
+	page.document.dispatchEvent(new page.window.Event('mouseup', {bubbles: true}))
+	await tick(10)
+	await pressComment(page)
+
+	const placedAfter = () => page.document.querySelector('.marker-form').previousElementSibling.dataset.sourceLine
+	t.is(placedAfter(), '3')
+	await reload(page, TWO_PARAGRAPHS)
+	t.is(placedAfter(), '3')
+})
+
+test('cancelling a comment form in a table row takes the row it rode in', async t => {
+	const page = await buildPage([], TABLE_MARKDOWN)
+	await selectIn(page, 'tr[data-source-line="5"] td:last-child', 0, 5)
+	await pressComment(page)
+	t.is(page.document.querySelectorAll('tr.marker-thread-row').length, 1)
+
+	page.document.querySelector('.marker-form .marker-btn:not(.marker-btn-primary)').click()
+	await tick(10)
+	// An emptied host row still holds a column-spanning cell the table is laid out around
+	t.is(page.document.querySelectorAll('tr.marker-thread-row').length, 0)
+	t.is(page.document.querySelectorAll('mark.marker-pending').length, 0)
+})
+
+test('a widget in a table that scrolls sideways is pinned to what shows, not to the grid', async t => {
+	const {window, document} = await buildPage([rowThread('abc123-c1', 5, 'On the first row')], TABLE_MARKDOWN)
+	const table = document.querySelector('#marker-content table')
+	const widget = () => document.querySelector('.marker-thread')
+
+	// The host cell spans every column: hidden, it reports the grid's width,
+	// which for a table that scrolls sideways is more than is visible
+	Object.defineProperty(window.HTMLTableCellElement.prototype, 'clientWidth',
+		{get: () => 1200, configurable: true})
+	Object.defineProperty(table, 'clientWidth', {value: 400, configurable: true})
+	Object.defineProperty(table, 'scrollWidth', {value: 1202, configurable: true})
+	window.dispatchEvent(new window.Event('resize'))
+	// The visible width, less the 2px of collapsed border the grid exceeds the cell by
+	t.is(widget().style.width, '398px')
+
+	// A table that fits: the cell is the right measure, borders excluded
+	Object.defineProperty(window.HTMLTableCellElement.prototype, 'clientWidth',
+		{get: () => 396, configurable: true})
+	Object.defineProperty(table, 'scrollWidth', {value: 398, configurable: true})
+	window.dispatchEvent(new window.Event('resize'))
+	t.is(widget().style.width, '396px')
 })
