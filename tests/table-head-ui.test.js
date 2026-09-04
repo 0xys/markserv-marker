@@ -62,6 +62,32 @@ const straddlesTop = (table, rect) => {
 	})
 }
 
+test('the copy leaves out widgets sitting in the header', async t => {
+	const {window, document} = await buildPage()
+
+	// What insertAt builds for a widget anchored to the header row
+	const head = document.querySelector('#marker-content table thead')
+	const host = document.createElement('tr')
+	host.className = 'marker-thread-row'
+	host.dataset.markerUi = ''
+	host.innerHTML = '<td class="marker-thread-cell" colspan="2">' +
+		'<div class="marker-editor">a whole editor</div></td>'
+	head.append(host)
+
+	const table = document.querySelector('#marker-content table')
+	needsHorizontalScroll(table, true)
+	window.dispatchEvent(new window.Event('resize'))
+	await tick(200)
+
+	const shell = document.querySelector('.marker-sticky-shell')
+	t.truthy(shell)
+	// Copied, it would be a second editor over the page that answers to nothing
+	t.is(shell.querySelectorAll('.marker-editor').length, 0)
+	t.is(shell.querySelectorAll('tr').length, 1)
+	// And the header's own cells still line up one for one with their copies
+	t.is(shell.querySelectorAll('th, td').length, 2)
+})
+
 test('a table that must scroll sideways gets a fixed copy of its header', async t => {
 	const {window, document} = await buildPage()
 
