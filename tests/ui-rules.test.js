@@ -10,6 +10,9 @@ const test = require('ava')
 
 const read = name => fs.readFileSync(path.join(__dirname, '..', 'lib', 'templates', name), 'utf8')
 
+const readJson = (...parts) => JSON.parse(
+	fs.readFileSync(path.join(__dirname, '..', ...parts), 'utf8'))
+
 test('the snapshot diff table is styled against the theme, not alone', t => {
 	const css = read('comments.css').replaceAll(/\/\*[\s\S]*?\*\//g, '')
 	// Every selector laying out the diff table or its rows has to outrank
@@ -93,4 +96,11 @@ test('every page carries the same footer', t => {
 	t.true(footer.includes('<a href="/">index</a>'))
 	t.true(footer.includes('PID: {{pid}}'))
 	t.true(footer.includes('inspired by <a href="https://github.com/markserv/markserv"'))
+})
+
+test('the package and the plugin claim the same version', t => {
+	// What lands on main is released as it stands, so the two have to agree
+	// before the merge, not in a release commit afterwards
+	t.is(readJson('package.json').version,
+		readJson('plugins', 'markserv-marker', '.claude-plugin', 'plugin.json').version)
 })
