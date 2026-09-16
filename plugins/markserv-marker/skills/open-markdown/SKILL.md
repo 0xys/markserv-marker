@@ -40,6 +40,9 @@ $ cd markserv-marker && npm install && npm link
    - that a selection also offers `✏️ Edit`, which opens that line and three either side as markdown and writes the file when they press Apply; if the file changed underneath them they are shown both versions and asked which to keep,
    - that a ```diff fence shows as a GitHub-style side-by-side comparison with the changed words picked out, and the button on the block switches it to the unified diff source — comments are made on the source, so that is where to select text to comment on a change,
    - that HTML comments (`<!-- ... -->`) in the markdown show as dim inline notes; the small toggle above the top-right corner of the page hides or shows them (their text can be selected and copied, but review comments cannot be left on it),
+   - that a code block whose lines run past its edge carries a button switching between scrolling them sideways and wrapping them, per block,
+   - that the path above the page frame links the folder the file sits in, so the neighbouring documents are one click away, and that folder listings carry the same path,
+   - that the index page's `Settings` tab chooses whether `Shift+Enter` or plain `Enter` posts a comment and applies an edit, the other key inserting a newline,
    - that they should invoke `/markserv-marker:review-markdown` when they are done commenting, so the feedback gets applied.
 
 # CLI reference
