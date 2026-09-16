@@ -539,3 +539,31 @@ test('an editor for a selection across blocks opens under the last of them, like
 	// The window still starts above the first line selected
 	t.is(page.document.querySelector('.marker-editor-lineno').textContent, '1')
 })
+
+test('the editor follows the same setting for Apply', async t => {
+	const page = await buildPage()
+	page.window.localStorage.setItem('markserv-marker-submit-key', 'enter')
+	await selectLine(page, 5)
+	await pressEdit(page)
+	t.is(page.document.querySelector('.marker-editor .marker-form-hint').textContent,
+		'Enter to apply')
+
+	const textarea = page.document.querySelector('.marker-editor textarea')
+	textarea.value = textarea.value.replace('second', 'SECOND')
+	textarea.dispatchEvent(new page.window.Event('input', {bubbles: true}))
+	const press = init => {
+		const event = new page.window.KeyboardEvent('keydown', {
+			key: 'Enter', bubbles: true, cancelable: true, ...init
+		})
+		textarea.dispatchEvent(event)
+		return event
+	}
+
+	press({shiftKey: true})
+	await tick(20)
+	t.falsy(page.calls.find(call => call.method === 'PATCH'))
+
+	press({})
+	await tick(20)
+	t.truthy(page.calls.find(call => call.method === 'PATCH'))
+})

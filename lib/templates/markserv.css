@@ -146,6 +146,20 @@ body .markdown-body {
   opacity: 0.45;
 }
 
+.marker-file-path-sep {
+  flex: none;
+  opacity: 0.45;
+}
+
+/* The folder the file sits in: a link, dimmed with the rest of the path
+   until it is the thing being pointed at */
+.marker-file-path-up {
+  flex: none;
+  color: inherit;
+  text-decoration: none;
+  opacity: 0.45;
+}
+
 .marker-file-path-base {
   flex: none;
   font-weight: 600;
@@ -156,8 +170,27 @@ body .markdown-body {
   opacity: 0.8;
 }
 
+.marker-file-path:hover .marker-file-path-sep,
+.marker-file-path:hover .marker-file-path-up {
+  opacity: 0.8;
+}
+
 .marker-file-path:hover .marker-file-path-base {
   opacity: 0.95;
+}
+
+/* Two classes and a hover in the rule above, so the link's own hover has to
+   carry the container's hover too to outrank it */
+.marker-file-path:hover .marker-file-path-up:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+/* One tooltip at a time: the link has its own, and the strip's would sit
+   under it saying something else. Beats the hover rule above, `:has()`
+   carrying the specificity of its argument. */
+.marker-file-path:has(.marker-file-path-up:hover)::before {
+  opacity: 0;
 }
 
 .marker-file-path.copied::after {

@@ -1206,6 +1206,60 @@ test('a decorated markdown comment does not shift quoteIndex counting', async t 
 	t.true(mark.nextSibling.nodeValue.startsWith(' here.'))
 })
 
+/* ---------- the key that posts, as the index page sets it ---------- */
+
+test('with Enter chosen, Enter posts and Shift+Enter is the newline', async t => {
+	const page = await buildPage([])
+	page.window.localStorage.setItem('markserv-marker-submit-key', 'enter')
+
+	await selectIn(page, 'p[data-source-line="3"]', 5, 14)
+	await pressComment(page)
+	// The hint has to agree with the keyboard, or it is worse than no hint
+	t.is(page.document.querySelector('.marker-form .marker-form-hint').textContent,
+		'Enter to post')
+
+	const textarea = page.document.querySelector('.marker-form textarea')
+	textarea.value = 'Keyboard only'
+	textarea.dispatchEvent(new page.window.Event('input', {bubbles: true}))
+	const press = init => {
+		const event = new page.window.KeyboardEvent('keydown', {
+			key: 'Enter', bubbles: true, cancelable: true, ...init
+		})
+		textarea.dispatchEvent(event)
+		return event
+	}
+
+	// Shift+Enter is now the newline
+	const shift = press({shiftKey: true})
+	await tick(20)
+	t.false(shift.defaultPrevented)
+	t.falsy(page.calls.find(call => call.method === 'POST'))
+
+	// An IME conversion candidate is committed with a plain Enter, and that
+	// Enter must still not post
+	press({isComposing: true})
+	await tick(20)
+	t.falsy(page.calls.find(call => call.method === 'POST'))
+
+	const plain = press({})
+	await tick(20)
+	t.true(plain.defaultPrevented)
+	t.is(page.calls.find(call => call.method === 'POST').body.body, 'Keyboard only')
+})
+
+test('a change made in another tab re-spells the hint without a reload', async t => {
+	const page = await buildPage([])
+	await selectIn(page, 'p[data-source-line="3"]', 5, 14)
+	await pressComment(page)
+	const hint = () => page.document.querySelector('.marker-form .marker-form-hint').textContent
+	t.is(hint(), 'Shift+Enter to post')
+
+	page.window.localStorage.setItem('markserv-marker-submit-key', 'enter')
+	page.window.dispatchEvent(new page.window.StorageEvent('storage', {key: 'markserv-marker-submit-key'}))
+	await tick(10)
+	t.is(hint(), 'Enter to post')
+})
+
 /* ---------- what a re-render and a reload may and may not do to open UI ---------- */
 
 const TWO_PARAGRAPHS = 'first paragraph here\n\nsecond paragraph here\n'

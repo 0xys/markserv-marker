@@ -28,7 +28,7 @@
 <div id="marker-content">
 {{{content}}}
 </div>
-<footer><sup><hr> Served by <a href="https://github.com/markserv/markserv" target="_blank" rel="noopener noreferrer">markserv</a>-marker | <a href="/">index</a> | PID: {{pid}}</sup></footer>
+<footer><sup><hr> Served by <a href="https://github.com/0xys/markserv-marker" target="_blank" rel="noopener noreferrer">markserv-marker</a> v{{version}} | <a href="/">index</a> | PID: {{pid}} | inspired by <a href="https://github.com/markserv/markserv" target="_blank" rel="noopener noreferrer">markserv</a></sup></footer>
 </article>
 <div class="page-controls">
 	<a class="page-btn" id="index-link" href="/" title="Index page">🏠</a>
@@ -89,51 +89,7 @@
 	});
 })();
 </script>
-<script>
-(function() {
-	// File path in the strip above the page frame. A long path keeps its
-	// leading directories and the last two segments, collapsing the middle
-	// to an ellipsis segment; hovering shows the full path in a tooltip
-	// (CSS ::before over data-path) and a click copies it.
-	var el = document.getElementById('marker-file-path');
-	if (!el) return;
-	var full = el.getAttribute('data-path') || '';
-	if (!full) { el.remove(); return; }
-
-	var MAX = 64;
-	function shortened(path) {
-		if (path.length <= MAX) return path;
-		var parts = path.split('/');
-		var tail = parts.slice(-2).join('/'); // parent dir + file name
-		var kept = [];
-		for (var i = 0; i < parts.length - 2; i++) {
-			var candidate = kept.concat([parts[i]]).join('/') + '/…/' + tail;
-			if (candidate.length > MAX) break;
-			kept.push(parts[i]);
-		}
-		return kept.join('/') + '/…/' + tail;
-	}
-
-	var display = shortened(full);
-	var cut = display.lastIndexOf('/') + 1;
-	var dir = document.createElement('span');
-	dir.className = 'marker-file-path-dir';
-	dir.textContent = display.slice(0, cut);
-	var base = document.createElement('span');
-	base.className = 'marker-file-path-base';
-	base.textContent = display.slice(cut);
-	el.appendChild(dir);
-	el.appendChild(base);
-
-	el.addEventListener('click', function() {
-		if (!navigator.clipboard) return;
-		navigator.clipboard.writeText(full).then(function() {
-			el.classList.add('copied');
-			setTimeout(function() { el.classList.remove('copied'); }, 1200);
-		});
-	});
-})();
-</script>
+<script src="{markserv}templates/file-path.js" defer></script>
 {{#if hotreload}}
 <script>
 (function() {
