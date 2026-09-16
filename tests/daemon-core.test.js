@@ -181,6 +181,46 @@ test.serial('index page lists registered files', async t => {
 	t.true(html.includes('markserv-marker'))
 })
 
+// The path strip links the folder the file sits in, which is the URL up to
+// its last slash — one level up, and the only level the serve root allows
+test.serial('the folder a registered file sits in serves a listing of its siblings', async t => {
+	const folder = fs.mkdtempSync(path.join(os.tmpdir(), 'marker-folder-'))
+	fs.writeFileSync(path.join(folder, 'doc.md'), '# Doc\n')
+	fs.writeFileSync(path.join(folder, 'other.md'), '# Other\n')
+	const {reg} = registry.register(path.join(folder, 'doc.md'))
+
+	const listing = await fetch(`${base}/f/${reg.id}/`)
+	t.is(listing.status, 200)
+	const html = await listing.text()
+	t.true(html.includes('other.md'))
+	t.true(html.includes('doc.md'))
+	// Named for the folder, not for the file registered inside it
+	t.true(html.includes(`${path.parse(folder).base}/`))
+	// And the strip above the frame names the folder's own path
+	t.true(html.includes(`data-path="${fs.realpathSync(folder)}" data-folder`))
+	t.true(html.includes('templates/file-path.js'))
+
+	// And no level above it: the serve root is the folder itself
+	const above = await fetch(`${base}/f/${reg.id}/../`, {redirect: 'manual'})
+	t.true(above.status === 301 || above.status === 302 || above.status === 403 || above.status === 404)
+})
+
+// Preferences that belong to the browser rather than to a document live on
+// the index page; comments.js reads this one at each keypress
+test.serial('the index page offers the submit-key setting, on a tab of its own', async t => {
+	const response = await fetch(`${base}/`)
+	const html = await response.text()
+	// Under the file list it was missed, so the two are tabs
+	t.true(html.includes('id="tab-files"'))
+	t.true(html.includes('id="tab-settings"'))
+	t.true(html.includes('id="panel-files"'))
+	t.true(html.includes('id="panel-settings"'))
+	t.true(html.includes('id="submit-key"'))
+	t.true(html.includes('markserv-marker-submit-key'))
+	t.true(html.includes('value="shift-enter"'))
+	t.true(html.includes('value="enter"'))
+})
+
 // A tree of index.md files is indistinguishable by name alone, so the index
 // shows each document's own title beside it
 test.serial('index rows show the markdown title next to the file name', async t => {

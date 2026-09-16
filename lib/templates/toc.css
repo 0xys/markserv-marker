@@ -17,21 +17,24 @@
 .marker-toc {
 	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
 	position: fixed;
-	top: 24px;
+	/* Vertically centered whatever the panel's height, so a short list does
+	   not huddle at the top; the Y offset rides along with the slide-in X.
+	   45%, not 50%: the geometric middle reads as slightly low to the eye. */
+	top: 45%;
 	right: 0;
 	width: 240px;
 	color: var(--markserv-btn-color);
 	font-size: 12px;
 	line-height: 1.5;
 	z-index: 9999;
-	transform: translateX(calc(100% + 8px));
+	transform: translate(calc(100% + 8px), -50%);
 	transition: transform 0.15s ease;
 }
 
 .marker-toc-zone:hover ~ .marker-toc,
 .marker-toc:hover,
 .marker-toc.pinned {
-	transform: translateX(0);
+	transform: translate(0, -50%);
 }
 
 /* Hover bridge. The handle is absolutely positioned outside the panel's box,
@@ -106,8 +109,19 @@
 	list-style: none;
 }
 
+/* A row, so a long heading gives way instead of pushing the comment count
+   off the edge: clipping the item as a whole took the badge with it, and the
+   badge is the part that says there is something here to read. */
 .marker-toc li {
+	display: flex;
+	align-items: baseline;
+	gap: 6px;
 	margin: 2px 0;
+}
+
+/* min-width: 0 is what lets a flex item shrink below its text and ellipsis */
+.marker-toc li > a {
+	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -123,13 +137,12 @@
 }
 
 .marker-toc-count {
-	display: inline-block;
-	margin-left: 6px;
+	/* Never shrinks: the heading beside it is what gives way */
+	flex: none;
 	padding: 0 6px;
 	border-radius: 8px;
 	font-size: 10px;
 	line-height: 15px;
-	vertical-align: 1px;
 	background: rgba(210, 153, 34, 0.45);
 }
 

@@ -1,0 +1,61 @@
+/* Code blocks: scroll long lines sideways or wrap them, toggled per block by
+   lib/templates/code-block.js. The wrapper is what the toggle floats over. */
+.marker-codeblock {
+	position: relative;
+}
+
+/* The same button as the mermaid and diff blocks carry, so the three read
+   as one control */
+.marker-codeblock-toggle {
+	position: absolute;
+	top: 6px;
+	right: 6px;
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	padding: 2px 10px;
+	border: 1px solid var(--markserv-btn-border);
+	border-radius: 12px;
+	background: var(--markserv-btn-bg);
+	color: var(--markserv-btn-color);
+	font-size: 11px;
+	line-height: 18px;
+	white-space: nowrap;
+	cursor: pointer;
+	opacity: 0.55;
+	transition: opacity 0.15s ease;
+	/* It floats over the top-right of the block, which is exactly where a
+	   drag along the first line ends. Selectable, it would take the endpoint
+	   into marked-up UI, and the Comment button never appears for those. */
+	user-select: none;
+}
+
+.marker-codeblock:hover > .marker-codeblock-toggle,
+.marker-codeblock-toggle:focus {
+	opacity: 1;
+}
+
+.marker-codeblock-toggle[hidden] {
+	display: none;
+}
+
+/* Wrapping has to beat the theme, which sets `pre {overflow: auto}` and
+   `pre > code {white-space: pre}` as `.markdown-body …` rules. `anywhere`
+   rather than `break-word`: a hash or a URL has no break opportunity of its
+   own, and unbroken it is what made the block scroll in the first place. */
+.markdown-body .marker-codeblock[data-mode="wrap"] pre {
+	overflow-x: hidden;
+}
+
+.markdown-body .marker-codeblock[data-mode="wrap"] pre > code {
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	word-break: normal;
+	overflow-x: visible;
+}
+
+@media print {
+	.marker-codeblock-toggle {
+		display: none !important;
+	}
+}

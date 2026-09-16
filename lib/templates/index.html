@@ -49,11 +49,41 @@
 		.marker-pager { margin-top: 8px; font-size: 13px; display: flex; gap: 12px; align-items: center; }
 		.marker-pager a { text-decoration: none; }
 		.marker-pager .disabled { opacity: 0.35; pointer-events: none; }
+		/* The file list and the reader's preferences are two things to look at,
+		   not one page to scroll: settings under the table were missed. The
+		   heading keeps its own rule and the tabs sit on theirs, or the two
+		   lines 20px apart read as a mistake. */
+		article > h1 { border-bottom: none; margin-bottom: 10px; }
+		.marker-tabs {
+			display: flex; gap: 4px; margin: 0 0 20px;
+			border-bottom: 1px solid var(--markserv-border);
+		}
+		.marker-tab {
+			padding: 6px 14px; border: none; border-bottom: 2px solid transparent;
+			margin-bottom: -1px; background: none; color: inherit;
+			font: inherit; font-size: 14px; cursor: pointer; opacity: 0.6;
+		}
+		.marker-tab:hover { opacity: 1; }
+		.marker-tab[aria-selected="true"] { opacity: 1; font-weight: 600; border-bottom-color: #d29922; }
+		#panel-files[hidden], #panel-settings[hidden] { display: none; }
+		/* Preferences that belong to the reader's browser rather than to any
+		   one document, which is why they live here and not on a page */
+		.marker-setting { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+		.marker-setting select {
+			font: inherit; font-size: 13px; padding: 2px 6px; border-radius: 6px;
+			border: 1px solid var(--markserv-btn-border);
+			background: var(--markserv-btn-bg); color: inherit; cursor: pointer;
+		}
 	</style>
 </head>
 <body class="dir">
 <article class="markdown-body">
 <h1>markserv-marker</h1>
+<div class="marker-tabs" role="tablist">
+	<button class="marker-tab" role="tab" id="tab-files" aria-controls="panel-files" aria-selected="true">Files</button>
+	<button class="marker-tab" role="tab" id="tab-settings" aria-controls="panel-settings" aria-selected="false">Settings</button>
+</div>
+<div id="panel-files" role="tabpanel" aria-labelledby="tab-files">
 {{#if hasFiles}}
 <table class="marker-index-table">
 	<thead>
@@ -91,7 +121,18 @@
 <p class="marker-empty">No files registered yet. Register one with:</p>
 <pre><code>markserv-marker path/to/file.md</code></pre>
 {{/if}}
-<footer><sup><hr> <a href="https://github.com/0xys/markserv-marker" target="_blank" rel="noopener noreferrer">markserv-marker</a> v{{version}} | inspired by <a href="https://github.com/markserv/markserv" target="_blank" rel="noopener noreferrer">markserv</a> | PID: {{pid}}</sup></footer>
+</div>
+<div id="panel-settings" role="tabpanel" aria-labelledby="tab-settings" hidden>
+	<div class="marker-setting">
+		<label for="submit-key">Post a comment or apply an edit with</label>
+		<select id="submit-key">
+			<option value="shift-enter">Shift + Enter</option>
+			<option value="enter">Enter</option>
+		</select>
+		<span class="marker-path">The other one inserts a newline. Applies to every page in this browser.</span>
+	</div>
+</div>
+<footer><sup><hr> Served by <a href="https://github.com/0xys/markserv-marker" target="_blank" rel="noopener noreferrer">markserv-marker</a> v{{version}} | <a href="/">index</a> | PID: {{pid}} | inspired by <a href="https://github.com/markserv/markserv" target="_blank" rel="noopener noreferrer">markserv</a></sup></footer>
 </article>
 <div class="page-controls">
 	<button class="page-btn" id="theme-toggle" title="Toggle theme"></button>
@@ -106,6 +147,59 @@
 				.then(function() { location.reload(); })
 				.catch(function(err) { alert('Failed to unregister: ' + err.message); });
 		});
+	});
+})();
+</script>
+<script>
+(function() {
+	var tabs = [].slice.call(document.querySelectorAll('.marker-tab'));
+
+	function select(id) {
+		tabs.forEach(function(tab) {
+			var on = tab.id === id;
+			tab.setAttribute('aria-selected', on ? 'true' : 'false');
+			document.getElementById(tab.getAttribute('aria-controls')).hidden = !on;
+		});
+	}
+
+	function fromHash() {
+		select(location.hash === '#settings' ? 'tab-settings' : 'tab-files');
+	}
+
+	tabs.forEach(function(tab) {
+		tab.addEventListener('click', function() {
+			var settings = tab.id === 'tab-settings';
+			// In the URL, so a reload and a shared link land on the same tab,
+			// but replaced rather than pushed: two tabs are not two pages, and
+			// Back should leave rather than step through them
+			history.replaceState(null, '',
+				settings ? '#settings' : location.pathname + location.search);
+			select(tab.id);
+		});
+	});
+
+	window.addEventListener('hashchange', fromHash);
+	fromHash();
+})();
+</script>
+<script>
+(function() {
+	// Read by comments.js on every document page, at each keypress, so a
+	// change here reaches an open page without reloading it
+	var KEY = 'markserv-marker-submit-key';
+	var select = document.getElementById('submit-key');
+	if (!select) return;
+
+	try {
+		select.value = localStorage.getItem(KEY) === 'enter' ? 'enter' : 'shift-enter';
+	} catch (err) {}
+
+	select.addEventListener('change', function() {
+		try {
+			localStorage.setItem(KEY, select.value);
+		} catch (err) {
+			alert('Could not save the setting: ' + err.message);
+		}
 	});
 })();
 </script>

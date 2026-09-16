@@ -43,6 +43,9 @@
 	cursor: pointer;
 	opacity: 0.55;
 	transition: opacity 0.15s ease;
+	/* A drag past the end of the first source line ends here, and an endpoint
+	   inside UI is one the Comment button refuses; same fix as the diff toggle */
+	user-select: none;
 }
 
 .marker-mermaid:hover > .marker-mermaid-toggle,

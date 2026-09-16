@@ -94,6 +94,26 @@ test.serial('editing a registered file pushes a reload envelope', async t => {
 	t.true(message.html.includes('data-source-line'))
 })
 
+test.serial('editing a .diff file pushes a reload of its diff block', async t => {
+	const diffPath = path.join(dirA, 'change.diff')
+	fs.writeFileSync(diffPath, '@@ -1,1 +1,1 @@\n-one\n+two\n')
+	const {reg} = registry.register(diffPath)
+
+	// Waits for the edited content specifically: creating the file a moment
+	// ago can produce a reload of its own
+	const waiting = listenFor(reg.urlPath,
+		message => message.type === 'reload' && message.html.includes('+three'))
+	await settle(300)
+
+	fs.writeFileSync(diffPath, '@@ -1,1 +1,1 @@\n-one\n+three\n')
+
+	const message = await waiting
+	// Rebuilt through the same path the page was rendered with, wrapper included
+	t.true(message.html.includes('marker-diffblock'))
+	t.true(message.html.includes('+three'))
+	t.true(message.html.includes('data-source-line="1"'))
+})
+
 test.serial('posting a comment pushes a comments envelope to viewers of that file', async t => {
 	const {reg} = registry.register(path.join(dirA, 'a.md'))
 
