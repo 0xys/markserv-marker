@@ -83,7 +83,10 @@ const settle = ms => new Promise(resolve => {
 test.serial('editing a registered file pushes a reload envelope', async t => {
 	const {reg} = registry.register(path.join(dirA, 'a.md'))
 
-	const waiting = listenFor(reg.urlPath, message => message.type === 'reload')
+	// Waits for the edited content specifically: on macOS the watcher replays
+	// the creation of a.md from a moment ago, and that reload still says v1
+	const waiting = listenFor(reg.urlPath,
+		message => message.type === 'reload' && message.html.includes('A v2'))
 	await settle(300) // Let the client register with the ws server
 
 	fs.writeFileSync(path.join(dirA, 'a.md'), '# A v2\n\nnew paragraph\n')
