@@ -1,6 +1,6 @@
 {
   "name": "markserv-marker",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "Single-daemon Markdown preview server with selection-anchored review comments — a markserv fork",
   "license": "MIT",
   "author": "0xys",
@@ -70,22 +70,27 @@
     "connect": "^3.7.0",
     "emoji-regex": "^8.0.0",
     "get-port": "^5.1.0",
-    "handlebars": "^4.5.3",
-    "markdown-it": "^10.0.0",
+    "handlebars": "^4.7.10",
+    "markdown-it": "^15.0.3",
     "markdown-it-anchor": "^5.2.5",
-    "markdown-it-emoji": "^1.4.0",
+    "markdown-it-emoji": "^3.1.0",
     "markdown-it-highlightjs": "^3.0.0",
     "markdown-it-mathjax": "^2.0.0",
     "markdown-it-table-of-contents": "^0.4.4",
     "markdown-it-task-lists": "^2.1.1",
     "meow": "^6.0.0",
     "open": "^6.0.0",
-    "send": "^0.17.1",
-    "ws": "^7.4.0"
+    "send": "^0.19.2",
+    "ws": "^7.5.14"
   },
   "devDependencies": {
-    "ava": "^6.1.3",
+    "ava": "^7.0.0",
     "jsdom": "^29.1.1",
     "xo": "^0.58.0"
+  },
+  "overrides": {
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.1"
+    }
   }
 }

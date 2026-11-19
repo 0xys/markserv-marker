@@ -55,6 +55,6 @@ $ markserv-marker stop               # stop the daemon
 $ markserv-marker daemon             # run the daemon in the foreground (to see logs)
 ```
 
-Flags: `--port/-p` (default `7642`), `--address/-a` (default `localhost`), `--no-browser`, `--json`, `--theme dark|light|synthwave|solarized`, `--no-hotreload`, `--silent`, `--verbose`.
+Flags: `--port/-p` (default `7642`), `--address/-a` (default `localhost`; the daemon answers only requests addressed to `localhost`, `127.0.0.1`, `[::1]` or this address, so reaching it over a LAN means passing the LAN address itself), `--no-browser`, `--json`, `--theme dark|light|synthwave|solarized`, `--no-hotreload`, `--silent`, `--verbose`, `--follow-symlinks` (serve files a symlink under the served folder points to outside it, refused with `403` by default; it takes effect only when it starts the daemon). Secrets beside the file, such as `.ssh/`, `.git/` or `.env`, answer `404` whatever the flags.
 
 Registration is idempotent (`id` = hash of the file's realpath). Registering a file serves its whole parent directory under `/f/<id>/`, so relative images and sibling links work. A `.diff` or `.patch` file can be registered the same way and gets a page of its own, shown side by side and commentable line by line, which is worth using when the thing to review is a patch rather than prose. Comments live in daemon memory only — `stop` discards them.

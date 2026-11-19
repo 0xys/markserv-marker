@@ -22,6 +22,8 @@ Options
       --theme         theme: dark | light | synthwave | solarized
       --light         shortcut for --theme light
       --synthwave     shortcut for --theme synthwave
+      --follow-symlinks  serve symlinks that lead out of the served root
+                      (daemon; refused by default)        [default: off]
   -s, --silent        no output (daemon)
   -v, --verbose       verbose request logging (daemon)
 
