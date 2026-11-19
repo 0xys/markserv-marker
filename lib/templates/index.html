@@ -137,7 +137,7 @@
 <div class="page-controls">
 	<button class="page-btn" id="theme-toggle" title="Toggle theme"></button>
 </div>
-<script>
+<script nonce="{{nonce}}">
 (function() {
 	document.querySelectorAll('.marker-unregister').forEach(function(btn) {
 		btn.addEventListener('click', function() {
@@ -150,7 +150,7 @@
 	});
 })();
 </script>
-<script>
+<script nonce="{{nonce}}">
 (function() {
 	var tabs = [].slice.call(document.querySelectorAll('.marker-tab'));
 
@@ -182,7 +182,7 @@
 	fromHash();
 })();
 </script>
-<script>
+<script nonce="{{nonce}}">
 (function() {
 	// Read by comments.js on every document page, at each keypress, so a
 	// change here reaches an open page without reloading it
@@ -203,7 +203,7 @@
 	});
 })();
 </script>
-<script>
+<script nonce="{{nonce}}">
 (function() {
 	var themes = ['dark', 'light', 'synthwave', 'solarized'];
 	var icons = {dark: '\u{1F319}', light: '\u{2600}\u{FE0F}', synthwave: '\u{1F9D1}\u{200D}\u{1F3A4}', solarized: '\u{262F}\u{FE0F}'};
