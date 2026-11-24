@@ -34,7 +34,7 @@ Resolve markdown review comments
 
 # API reference
 
-Base URL `http://localhost:7642`. All bodies are JSON.
+Base URL `http://localhost:7642`. All bodies are JSON and must be sent with `content-type: application/json`, or the daemon answers `415`. Requests carrying an `Origin` other than the daemon's own are refused with `403`, which curl never sends, and so is a `Host` that is not `localhost`, `127.0.0.1` or `[::1]`.
 
 | Method & path | Description |
 |---|---|
@@ -44,7 +44,7 @@ Base URL `http://localhost:7642`. All bodies are JSON.
 | `GET /api/files/:id` | One registration |
 | `DELETE /api/files/:id` | Unregister (drops its comments) |
 | `GET /api/files/:id/content` | `{path, lines, content}` — raw markdown source for line mapping |
-| `PATCH /api/files/:id/content` | `{lineStart, lineEnd, base, text}` → `{lineStart, lineEnd, lines}`. Replaces those lines, but locates them by `base` — the exact text the caller read — so an edit elsewhere cannot misplace it. A `base` that is no longer there gets `409` with the current text; `{force: true}` overwrites anyway. Editing the file with the `Edit` tool is the normal way; this exists because the browser's editor needs it, and is the honest choice when the daemon is the only thing that knows the file |
+| `PATCH /api/files/:id/content` | `{lineStart, lineEnd, base, text}` → `{lineStart, lineEnd, lines}`. Replaces those lines, but locates them by `base` — the exact text the caller read — so an edit elsewhere cannot misplace it. A `base` that is no longer there gets `409` with the current text; `{force: true}` overwrites anyway. Only markdown, `.diff` and `.patch` files are writable; any other file gets `403` `not-editable`. Editing the file with the `Edit` tool is the normal way; this exists because the browser's editor needs it, and is the honest choice when the daemon is the only thing that knows the file |
 | `GET /api/files/:id/comments` | Threads; filters: `?resolved=true\|false`, `?since=<ISO 8601>` |
 | `POST /api/files/:id/comments` | Root: `{line}` or `{lineStart, lineEnd}` + `{body, author}`, optional `{quote, quoteIndex}`. Reply: `{parentId, body, author}` |
 | `DELETE /api/files/:id/comments` | Bulk-delete comments; `?resolved=true` clears only resolved threads |

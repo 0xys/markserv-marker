@@ -18,9 +18,10 @@
 	<link rel="stylesheet" href="{markserv}templates/md-comments.css">
 	<link rel="stylesheet" href="{markserv}templates/diff-block.css">
 	<link rel="stylesheet" href="{markserv}templates/code-block.css">
-	<script type="text/javascript" id="MathJax-script" async
-	      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
-        </script>
+	<!-- MathJax finds the components and fonts it loads later relative to this
+	     src, so they come from the vendored copy too -->
+	<script nonce="{{nonce}}" type="text/javascript" id="MathJax-script" async
+	      src="{markserv}vendor/mathjax/tex-mml-chtml.js"></script>
 </head>
 <body class="marker-doc">
 <article class="markdown-body">
@@ -35,7 +36,7 @@
 	<button class="page-btn" id="width-toggle" title="Expand to window width">⛶</button>
 	<button class="page-btn" id="theme-toggle" title="Toggle theme"></button>
 </div>
-<script>
+<script nonce="{{nonce}}">
 (function() {
 	var themes = ['dark', 'light', 'synthwave', 'solarized'];
 	var icons = {dark: '\u{1F319}', light: '\u{2600}\u{FE0F}', synthwave: '\u{1F9D1}\u{200D}\u{1F3A4}', solarized: '\u{262F}\u{FE0F}'};
@@ -65,7 +66,7 @@
 	});
 })();
 </script>
-<script>
+<script nonce="{{nonce}}">
 (function() {
 	var btn = document.getElementById('width-toggle');
 	if (!btn) return;
@@ -89,9 +90,9 @@
 	});
 })();
 </script>
-<script src="{markserv}templates/file-path.js" defer></script>
+<script nonce="{{nonce}}" src="{markserv}templates/file-path.js" defer></script>
 {{#if hotreload}}
-<script>
+<script nonce="{{nonce}}">
 (function() {
 	var ws;
 	var delay = 1000;
@@ -136,22 +137,23 @@
 {{/if}}
 <!-- diff-core.js publishes the word diff both diff-block.js and comments.js
      read; defer runs these in document order, so it goes first -->
-<script src="{markserv}templates/diff-core.js" defer></script>
-<script src="{markserv}templates/toc.js" defer></script>
-<script src="{markserv}templates/mermaid.js" defer></script>
-<script src="{markserv}templates/md-comments.js" defer></script>
-<script src="{markserv}templates/diff-block.js" defer></script>
-<script src="{markserv}templates/code-block.js" defer></script>
-<script src="{markserv}templates/table-head.js" defer></script>
+<script nonce="{{nonce}}" src="{markserv}templates/diff-core.js" defer></script>
+<script nonce="{{nonce}}" src="{markserv}templates/toc.js" defer></script>
+<script nonce="{{nonce}}" src="{markserv}templates/mermaid.js" defer></script>
+<script nonce="{{nonce}}" src="{markserv}templates/md-comments.js" defer></script>
+<script nonce="{{nonce}}" src="{markserv}templates/diff-block.js" defer></script>
+<script nonce="{{nonce}}" src="{markserv}templates/code-block.js" defer></script>
+<script nonce="{{nonce}}" src="{markserv}templates/table-head.js" defer></script>
+<script nonce="{{nonce}}" src="{markserv}templates/math.js" defer></script>
 {{#if fileId}}
-<script>
+<script nonce="{{nonce}}">
 window.__marker = {
 	fileId: '{{fileId}}',
 	apiBase: '/api',
 	hotreload: {{#if hotreload}}true{{else}}false{{/if}}
 };
 </script>
-<script src="{markserv}templates/comments.js" defer></script>
+<script nonce="{{nonce}}" src="{markserv}templates/comments.js" defer></script>
 {{/if}}
 </body>
 </html>

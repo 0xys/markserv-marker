@@ -31,7 +31,7 @@ test.before(async () => {
 		theme: 'dark'
 	})
 	base = `http://localhost:${port}`
-	wsPort = service.hotReloadServer.address().port
+	wsPort = service.wsPort
 })
 
 test.after.always(() => {

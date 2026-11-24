@@ -159,3 +159,26 @@ test('a diff fence keeps the same line anchors as any other fence', async t => {
 	t.deepEqual(anchored.filter(a => a.tag === 'p'),
 		[{tag: 'p', start: 1, end: 1}, {tag: 'p', start: 8, end: 8}])
 })
+
+test('header cells carry the header row line, body rows their own', async t => {
+	// Its own document: the shared fixture's line numbers are hardcoded above.
+	// markdown-it 15 maps body rows itself but leaves the header cells bare,
+	// and a selection in one would otherwise anchor to the whole header row.
+	const html = await markdownToHTML('intro\n\n| A | B |\n|---|---|\n| 1 | 2 |\n| 3 | 4 |\n')
+	const anchored = attrs(html)
+
+	t.deepEqual(anchored.filter(a => a.tag === 'th'),
+		[{tag: 'th', start: 3, end: 3}, {tag: 'th', start: 3, end: 3}])
+	t.deepEqual(anchored.filter(a => a.tag === 'tr'),
+		[{tag: 'tr', start: 3, end: 3}, {tag: 'tr', start: 5, end: 5}, {tag: 'tr', start: 6, end: 6}])
+	t.deepEqual(anchored.filter(a => a.tag === 'td'), [])
+})
+
+test('a heading id is slugged from its emoji shortcode, as the TOC links it', async t => {
+	// The emoji rule runs after anchor, so the id keeps the shortcode's name
+	// and the TOC, which slugs the source text, points at the same id
+	const html = await markdownToHTML('[[toc]]\n\n# Plan :rocket:\n')
+
+	t.regex(html, /<h1 id="plan-rocket"[^>]*>Plan 🚀<\/h1>/)
+	t.regex(html, /href="#plan-rocket"/)
+})
